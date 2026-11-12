@@ -26,7 +26,13 @@ Reproduire pour la **pension** le cheminement de la paie :
   (structure, `.gitignore`, `AGENTS.md` + agents `.pi/.claude/.opencode`,
   `app/openfisca_client.py`, `app/app.py`, `pyproject.toml` uv, format tests).
 - **Agents portables réutilisables** : `analyste-openfisca` (Haiku, lecture
-  seule), `juriste-fiscal-tn` (Sonnet, web) — à copier.
+  seule), `juriste-fiscal-tn` (Sonnet, web). **Déjà déployés en user** via
+  `scripts/deploy_agents.sh --global` (dans ~/.pi/agent/agents,
+  ~/.claude/agents, ~/.config/opencode/agent) — donc **disponibles depuis le
+  chantier pension sans rien copier**. Pour une source projet propre, reprendre
+  `scripts/deploy_agents.sh` (source unique `.pi/agents/*.md` → génère
+  `.claude/agents` et `.opencode/agent`, option `--global`) depuis le dépôt
+  paie.
 
 ## MODÈLE openfisca pension (agent `pension-model`, vérifié par calcul)
 

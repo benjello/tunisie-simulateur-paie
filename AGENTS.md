@@ -31,9 +31,19 @@ moteur unique.
 
 ## Profils d'agents disponibles
 
-Ces profils existent en versions natives dans `.pi/agents/`, `.claude/agents/`
-et `.opencode/agent/`. Tout opérateur qui ne lit pas ces dossiers peut les
-reproduire à partir des descriptions ci-dessous.
+**Source unique** : `.pi/agents/*.md` (frontmatter name/description/tools/model).
+Les autres formats sont **générés** par `scripts/deploy_agents.sh` :
+
+```bash
+scripts/deploy_agents.sh           # régénère .claude/agents/ et .opencode/agent/ (projet)
+scripts/deploy_agents.sh --global  # + déploie en user : ~/.pi/agent/agents, ~/.claude/agents, ~/.config/opencode/agent
+scripts/deploy_agents.sh --check   # vérifie la synchro (CI), sans écrire
+```
+
+N'éditez que `.pi/agents/*.md`, puis relancez le script. `--global` rend les
+agents disponibles depuis n'importe quel répertoire de travail. Tout opérateur
+qui ne lit aucun de ces dossiers peut reproduire les profils à partir des
+descriptions ci-dessous.
 
 ### `analyste-openfisca` — analyse du modèle (lecture seule, économe)
 
