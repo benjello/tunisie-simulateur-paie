@@ -154,26 +154,38 @@ def server(input, output, session):
             nb_infirme=int(input.nb_infirme() or 0),
         )
         if str(input.sens()) == "net_brut":
+            net_cible = float(input.net_cible() or 0)
+            primes_net = float(input.primes_net() or 0)
+            if net_cible <= 0:
+                return ("invalide", "Saisissez un net à payer strictement positif.")
+            if primes_net < 0:
+                return ("invalide", "Les primes ne peuvent pas être négatives.")
             try:
                 return ("ok", brut_depuis_net(
-                    float(input.net_cible() or 0), annee=annee, regime=regime,
-                    primes=float(input.primes_net() or 0),
+                    net_cible, annee=annee, regime=regime,
+                    primes=primes_net,
                     adhesion_complementaire=adhesion, **fam,
                 ))
             except httpx.HTTPError as erreur:
                 return ("erreur", str(erreur))
+        salaire_base = float(input.salaire_de_base() or 0)
+        primes_val = float(input.primes() or 0)
+        if salaire_base < 0 or primes_val < 0:
+            return ("invalide", "Le salaire et les primes ne peuvent pas être négatifs.")
+        if float(input.heures_sup() or 0) < 0:
+            return ("invalide", "Le nombre d'heures supplémentaires ne peut pas être négatif.")
         # Heures supplémentaires : non modélisées par OpenFisca côté bulletin.
         # On les valorise selon le régime horaire légal (art. 90 code du travail)
         # à partir du salaire de base, et on les ajoute aux primes.
         valeur_hs = valoriser_heures_supp(
-            float(input.salaire_de_base() or 0),
+            salaire_base,
             float(input.heures_sup() or 0),
             str(input.regime_horaire()),
         )
         situation = construire_situation(
-            salaire_de_base=float(input.salaire_de_base() or 0),
+            salaire_de_base=salaire_base,
             annee=annee,
-            primes=float(input.primes() or 0) + valeur_hs,
+            primes=primes_val + valeur_hs,
             regime=regime,
             adhesion_complementaire=adhesion,
             **fam,
@@ -186,6 +198,8 @@ def server(input, output, session):
     @render.ui
     def bulletin():
         statut, contenu = resultat()
+        if statut == "invalide":
+            return ui.div(ui.markdown(f"⚠️ {contenu}"), class_="alert alert-warning")
         if statut == "erreur":
             return ui.div(
                 ui.markdown(f"**Erreur de calcul :** {contenu}"),
