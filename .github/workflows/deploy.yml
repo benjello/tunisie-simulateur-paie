@@ -2,14 +2,18 @@ name: Deploy to shinyapps.io
 
 # Déploiement automatique de l'app Shiny à chaque push sur main touchant l'app
 # ou sa config de déploiement. Déclenchable aussi à la main.
+# Déclenchement MANUEL uniquement tant que SHINYAPPS_APP_ID n'est pas configuré
+# (sinon chaque push crée une nouvelle app et sature le plan gratuit, 5 apps max).
+# Pour réactiver le déploiement sur push : décommenter le bloc `push:` ci-dessous
+# une fois l'app-id défini en secret.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "app/**"
-      - "deploy/shinyapps/**"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch:
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "app/**"
+  #     - "deploy/shinyapps/**"
+  #     - ".github/workflows/deploy.yml"
 
 jobs:
   deploy:
@@ -41,10 +45,15 @@ jobs:
           SHINYAPPS_ACCOUNT: ${{ secrets.SHINYAPPS_ACCOUNT }}
           SHINYAPPS_TOKEN: ${{ secrets.SHINYAPPS_TOKEN }}
           SHINYAPPS_SECRET: ${{ secrets.SHINYAPPS_SECRET }}
+          # ID de l'app existante à METTRE À JOUR (évite d'en créer une nouvelle
+          # à chaque run — le plan gratuit est limité à 5 apps). Facultatif : si
+          # le secret n'est pas défini, premier déploiement crée l'app.
+          SHINYAPPS_APP_ID: ${{ secrets.SHINYAPPS_APP_ID }}
         run: |
-          rsconnect deploy shiny bundle \
-            --account "$SHINYAPPS_ACCOUNT" \
-            --token "$SHINYAPPS_TOKEN" \
-            --secret "$SHINYAPPS_SECRET" \
-            --title simulateur-paie-tunisie \
-            --entrypoint app:app
+          ARGS=(--account "$SHINYAPPS_ACCOUNT" --token "$SHINYAPPS_TOKEN" \
+                --secret "$SHINYAPPS_SECRET" --title simulateur-paie-tunisie \
+                --entrypoint app:app)
+          if [ -n "$SHINYAPPS_APP_ID" ]; then
+            ARGS+=(--app-id "$SHINYAPPS_APP_ID")
+          fi
+          rsconnect deploy shiny bundle "${ARGS[@]}"

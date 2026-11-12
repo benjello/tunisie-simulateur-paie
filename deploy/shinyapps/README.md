@@ -51,6 +51,22 @@ variables → Actions → New repository secret) :
 | `SHINYAPPS_ACCOUNT` | ton compte, ex. `benjello` |
 | `SHINYAPPS_TOKEN`   | le token (Account → Tokens sur shinyapps.io) |
 | `SHINYAPPS_SECRET`  | le secret associé |
+| `SHINYAPPS_APP_ID`  | **(important)** l'ID de l'app déjà déployée, pour la METTRE À JOUR au lieu d'en créer une nouvelle |
+
+### ⚠️ Limite 5 apps (plan gratuit) — ne pas recréer à chaque déploiement
+
+Sans `SHINYAPPS_APP_ID`, chaque `rsconnect deploy` **crée une nouvelle app** et
+sature vite le quota de 5 apps du plan gratuit (erreur *« maximum number of
+applications »*). Pour l'éviter :
+
+1. Sur https://www.shinyapps.io/admin/#/applications, **supprime les apps en
+   double** ; garde `simulateur-paie-tunisie` et note son **app ID**.
+2. Ajoute le secret GitHub `SHINYAPPS_APP_ID` avec cette valeur.
+3. Décommente le bloc `push:` dans `.github/workflows/deploy.yml` pour
+   réactiver le déploiement automatique (il est en manuel seul par défaut).
+
+Le workflow passe `--app-id` quand ce secret existe → il met à jour l'app au
+lieu d'en créer une.
 
 Ces valeurs sont chiffrées par GitHub et ne sont jamais exposées dans les logs.
 Tant qu'elles ne sont pas définies, le job échoue proprement (rien n'est
