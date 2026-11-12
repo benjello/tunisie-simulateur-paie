@@ -160,6 +160,73 @@ def brut_depuis_net(
     return dernier
 
 
+# Déductions IRPP annuelles (variable openfisca -> libellé). Elles n'entrent que
+# dans l'IRPP annuel, pas dans la retenue à la source mensuelle.
+DEDUCTIONS_ANNUELLES = {
+    "prime_assurance_vie": "Primes d'assurance-vie",
+    "interets_acquisition_logement": "Intérêts crédit logement (habitation principale)",
+    "compte_epargne_en_actions": "Compte épargne en actions (CEA)",
+    "compte_epargne_investissement": "Compte épargne investissement (CEI)",
+    "pret_universitaire": "Remboursement prêts universitaires",
+    "dons": "Dons",
+}
+
+
+def calculer_irpp_annuel(
+    *,
+    salaire_annuel: float,
+    annee: int,
+    regime: str = "rsna",
+    chef_de_famille: bool = False,
+    nb_enf: int = 0,
+    nb_enf_sup: int = 0,
+    nb_infirme: int = 0,
+    deductions: dict | None = None,
+    timeout: float = 30.0,
+) -> dict:
+    """Calcule l'IRPP annuel (variable `irpp`) et le solde de régularisation.
+
+    Les déductions (assurance-vie, logement, CEA/CEI, dons, prêts) sont des
+    variables annuelles qui n'affectent que l'IRPP annuel, pas la retenue à la
+    source. Renvoie irpp, irpp_net_a_payer (solde après RAS), ras_annuelle.
+    """
+    an = str(annee)
+    deductions = deductions or {}
+
+    regimes_mensuels = {f"{annee}-{m:02d}": regime for m in range(1, 13)}
+    individu: dict = {
+        "salaire_de_base": {an: salaire_annuel},
+        "regime_securite_sociale_cotisant": regimes_mensuels,
+    }
+    for variable, montant in deductions.items():
+        individu[variable] = {an: montant}
+
+    foyer: dict = {
+        "declarants": ["ind0"],
+        "chef_de_famille": {an: chef_de_famille},
+        "nb_enf": {an: nb_enf},
+        "nb_enf_sup": {an: nb_enf_sup},
+        "nb_infirme": {an: nb_infirme},
+        "irpp": {an: None},
+        "irpp_net_a_payer": {an: None},
+    }
+
+    situation = {
+        "individus": {"ind0": individu},
+        "menages": {"m0": {"personne_de_reference": ["ind0"]}},
+        "foyers_fiscaux": {"f0": foyer},
+    }
+
+    reponse = httpx.post(f"{API_URL}/calculate", json=situation, timeout=timeout)
+    reponse.raise_for_status()
+    foyer_res = reponse.json()["foyers_fiscaux"]["f0"]
+    irpp = foyer_res.get("irpp", {}).get(an)
+    irpp_net = foyer_res.get("irpp_net_a_payer", {}).get(an)
+    # RAS annuelle estimée = irpp - irpp_net (ce qui a déjà été prélevé à la source).
+    ras = None if (irpp is None or irpp_net is None) else irpp - irpp_net
+    return {"irpp": irpp, "irpp_net_a_payer": irpp_net, "ras_annuelle": ras}
+
+
 def api_disponible(timeout: float = 3.0) -> bool:
     """Teste si l'API OpenFisca répond (pour un message clair dans l'UI)."""
     try:

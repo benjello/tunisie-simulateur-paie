@@ -14,9 +14,11 @@ import httpx
 from shiny import App, reactive, render, ui
 
 from openfisca_client import (
+    DEDUCTIONS_ANNUELLES,
     api_disponible,
     brut_depuis_net,
     calculer_bulletin,
+    calculer_irpp_annuel,
     construire_situation,
 )
 
@@ -76,13 +78,40 @@ app_ui = ui.page_sidebar(
         ui.input_action_button("calculer", "Calculer le bulletin", class_="btn-primary"),
         width=320,
     ),
-    ui.h3("Fiche de paie — salarié (Tunisie)"),
     ui.output_ui("statut_api"),
-    ui.output_ui("bulletin"),
-    ui.markdown(
-        "Calculé par le moteur **OpenFisca-Tunisia** (via son API). "
-        "Convention : cotisations au taux du mois de paie, barème IRPP des "
-        "revenus de l'année de paie (retenue à la source)."
+    ui.navset_tab(
+        ui.nav_panel(
+            "Bulletin mensuel",
+            ui.h4("Fiche de paie — salarié (Tunisie)"),
+            ui.output_ui("bulletin"),
+            ui.markdown(
+                "Calculé par le moteur **OpenFisca-Tunisia** (via son API). "
+                "Convention : cotisations au taux du mois de paie, barème IRPP "
+                "des revenus de l'année de paie (retenue à la source)."
+            ),
+        ),
+        ui.nav_panel(
+            "Simulation annuelle (IRPP)",
+            ui.h4("IRPP annuel et déductions"),
+            ui.markdown(
+                "Les déductions ci-dessous (assurance-vie, crédit logement, "
+                "épargne, dons…) **ne réduisent pas la retenue à la source "
+                "mensuelle** : elles ne jouent qu'au niveau de l'**IRPP annuel**, "
+                "en régularisation lors de la déclaration. Salaire annuel = "
+                "12 × salaire de base mensuel saisi."
+            ),
+            ui.layout_sidebar(
+                ui.sidebar(
+                    ui.h6("Déductions annuelles (DT/an)"),
+                    *[
+                        ui.input_numeric(f"ded_{var}", libelle, 0, min=0, step=100)
+                        for var, libelle in DEDUCTIONS_ANNUELLES.items()
+                    ],
+                    width=330,
+                ),
+                ui.output_ui("annuel"),
+            ),
+        ),
     ),
     title="Simulateur de paie Tunisie",
 )
@@ -204,6 +233,52 @@ def server(input, output, session):
                 col_widths=(7, 5),
             ),
         )
+
+    @render.ui
+    @reactive.event(input.calculer, ignore_none=False)
+    def annuel():
+        annee = int(input.annee())
+        salaire_mensuel = float(input.salaire_de_base() or 0)
+        deductions = {
+            var: float(input[f"ded_{var}"]() or 0)
+            for var in DEDUCTIONS_ANNUELLES
+            if float(input[f"ded_{var}"]() or 0) > 0
+        }
+        try:
+            res = calculer_irpp_annuel(
+                salaire_annuel=salaire_mensuel * 12,
+                annee=annee,
+                regime=str(input.regime()),
+                chef_de_famille=bool(input.chef_de_famille()),
+                nb_enf=int(input.nb_enf() or 0),
+                nb_enf_sup=int(input.nb_enf_sup() or 0),
+                nb_infirme=int(input.nb_infirme() or 0),
+                deductions=deductions,
+            )
+        except httpx.HTTPError as erreur:
+            return ui.div(
+                ui.markdown(f"**Erreur de calcul :** {erreur}"),
+                class_="alert alert-danger",
+            )
+
+        irpp = res["irpp"] or 0.0
+        ras = res["ras_annuelle"] or 0.0
+        solde = res["irpp_net_a_payer"] or 0.0
+        libelle_solde = (
+            "Solde à payer (régularisation)" if solde >= 0
+            else "Trop-perçu (restitution)"
+        )
+
+        table = ui.tags.table(
+            ui.tags.tbody(
+                _ligne("Salaire annuel (12 mois)", salaire_mensuel * 12),
+                _ligne("IRPP annuel dû", irpp, fort=True),
+                _ligne("Retenue à la source déjà prélevée", -ras),
+                _ligne(libelle_solde, abs(solde), fort=True),
+            ),
+            class_="table table-sm",
+        )
+        return ui.card(ui.card_header("IRPP annuel"), table)
 
 
 app = App(app_ui, server)
