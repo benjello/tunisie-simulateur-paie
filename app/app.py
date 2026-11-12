@@ -86,6 +86,7 @@ app_ui = ui.page_sidebar(
             "Bulletin mensuel",
             ui.h4("Fiche de paie — salarié (Tunisie)"),
             ui.output_ui("bulletin"),
+            ui.download_button("export_pdf", "Télécharger le bulletin (PDF)"),
             ui.output_plot("courbe_net", height="320px"),
             ui.markdown(
                 "Calculé par le moteur **OpenFisca-Tunisia** (via son API). "
@@ -297,6 +298,53 @@ def server(input, output, session):
                 col_widths=(7, 5),
             ),
         )
+
+    @render.download(filename="bulletin_paie.pdf")
+    def export_pdf():
+        import io
+
+        import matplotlib.pyplot as plt
+
+        statut, contenu = resultat()
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.axis("off")
+        if statut != "ok":
+            ax.text(0.5, 0.5, "Aucun bulletin calculé.", ha="center")
+        else:
+            b = contenu
+            css = b["contribution_sociale_solidarite_prelevee_a_la_source"] or 0.0
+            lignes = [
+                ("Salaire brut", b["salaire_brut"]),
+                ("CNSS salariale", -(b["cotisations_salarie"] or 0.0)),
+                ("Salaire imposable", b["salaire_imposable"]),
+                ("IRPP (retenue à la source)", -(b["irpp_salarie_preleve_a_la_source"] or 0.0)),
+                ("CSS", -css),
+                ("Net à payer", b["salaire_net_a_payer"]),
+                ("", None),
+                ("CNSS patronale", b["cotisations_employeur"]),
+                ("Coût total employeur", b["salaire_super_brut"]),
+            ]
+            ax.set_title(
+                f"Fiche de paie — {str(input.regime()).upper()} {int(input.annee())}",
+                fontsize=14, fontweight="bold",
+            )
+            y = 0.9
+            for libelle, montant in lignes:
+                if libelle:
+                    val = "" if montant is None else f"{montant:,.3f} DT".replace(",", " ")
+                    gras = libelle in ("Net à payer", "Coût total employeur")
+                    ax.text(0.05, y, libelle, fontsize=11,
+                            fontweight="bold" if gras else "normal")
+                    ax.text(0.95, y, val, fontsize=11, ha="right",
+                            fontweight="bold" if gras else "normal")
+                y -= 0.08
+            ax.text(0.05, 0.02, "Calculé par OpenFisca-Tunisia — estimation indicative.",
+                    fontsize=8, style="italic", color="#666")
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="pdf")
+        plt.close(fig)
+        yield buf.getvalue()
 
     @render.plot(alt="Courbe du net en fonction du brut")
     @reactive.event(input.calculer, ignore_none=False)
