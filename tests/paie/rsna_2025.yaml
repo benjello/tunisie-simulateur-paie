@@ -8,6 +8,12 @@
 #
 # Valeurs attendues = moteur OpenFisca-Tunisia (droit 2025). Cas comparés hors
 # dépôt à des simulateurs ayant intégré la LF2025 (voir sources_locales/).
+#
+# Validation croisée (voir sources_locales/) : une fois la CNSS neutralisée,
+# le barème IRPP et la CSS sont alignés AU CENTIME avec les simulateurs en
+# ligne. Les simulateurs restés à 9,18 % en 2025 donnent un net supérieur de
+# 4 à 15 DT selon le brut (+0,5 pt CNSS déductible non appliqué) — obsolète
+# pour les revenus 2025 (cf. docs/notes/desaccords.md, D1/D2).
 
 - name: RSNA 2025 — brut 1000, célibataire
   period: 2025-01
