@@ -37,6 +37,26 @@ et lance `rsconnect deploy shiny`. L'URL publique s'affiche à la fin.
 - `requirements.txt` — dépendances (shiny, openfisca-tunisia, matplotlib, httpx).
 - `push.sh` — assemble le bundle et déploie.
 
+## Déploiement automatique (GitHub Actions)
+
+Le workflow `.github/workflows/deploy.yml` déploie l'app à chaque push sur
+`main` touchant `app/` ou `deploy/shinyapps/` (et manuellement via
+*Actions → Deploy to shinyapps.io → Run workflow*).
+
+**Configuration unique — définir 3 secrets GitHub** (Settings → Secrets and
+variables → Actions → New repository secret) :
+
+| Secret | Valeur |
+|--------|--------|
+| `SHINYAPPS_ACCOUNT` | ton compte, ex. `benjello` |
+| `SHINYAPPS_TOKEN`   | le token (Account → Tokens sur shinyapps.io) |
+| `SHINYAPPS_SECRET`  | le secret associé |
+
+Ces valeurs sont chiffrées par GitHub et ne sont jamais exposées dans les logs.
+Tant qu'elles ne sont pas définies, le job échoue proprement (rien n'est
+déployé). Pour les changer : régénère le token sur shinyapps.io et mets à jour
+le secret.
+
 ## Limite du plan gratuit
 
 25 h actives/mois. Au-delà, l'app est suspendue jusqu'au mois suivant. Pour un

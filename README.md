@@ -4,8 +4,12 @@ Simulateurs de **fiche de paie**, d'**impôt** et de **retraite** pour la Tunisi
 construits sur le moteur de micro-simulation [OpenFisca-Tunisia](https://github.com/openfisca/openfisca-tunisia),
 avec une interface [Shiny for Python](https://shiny.posit.co/py/).
 
-Premier simulateur livré : **fiche de paie** (salariés du privé, régime CNSS
-non agricole « RSNA » ; les autres régimes seront ajoutés ensuite).
+**🚀 Application en ligne : https://benjello.shinyapps.io/simulateur-paie-tunisie/**
+
+Premier simulateur livré : **fiche de paie** (salarié du privé et public).
+Fonctions : brut↔net, régimes CNSS (RSNA/RSA/RSAA/CNRPS), heures supplémentaires,
+détail CNSS par branche, graphique, export PDF, comparateur multi-années/régimes,
+simulation annuelle IRPP, interface bilingue FR/AR.
 
 ## Architecture
 

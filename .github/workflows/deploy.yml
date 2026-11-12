@@ -1,0 +1,50 @@
+name: Deploy to shinyapps.io
+
+# Déploiement automatique de l'app Shiny à chaque push sur main touchant l'app
+# ou sa config de déploiement. Déclenchable aussi à la main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "deploy/shinyapps/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install rsconnect-python
+        run: pip install rsconnect-python
+
+      - name: Assembler le bundle
+        run: |
+          mkdir -p bundle
+          cp deploy/shinyapps/app.py        bundle/app.py
+          cp app/app.py                     bundle/app_main.py
+          cp app/openfisca_client.py        bundle/openfisca_client.py
+          cp app/i18n.py                    bundle/i18n.py
+          cp deploy/shinyapps/requirements.txt bundle/requirements.txt
+          echo "3.12" > bundle/.python-version
+          ls -1 bundle
+
+      - name: Déployer sur shinyapps.io
+        env:
+          SHINYAPPS_ACCOUNT: ${{ secrets.SHINYAPPS_ACCOUNT }}
+          SHINYAPPS_TOKEN: ${{ secrets.SHINYAPPS_TOKEN }}
+          SHINYAPPS_SECRET: ${{ secrets.SHINYAPPS_SECRET }}
+        run: |
+          rsconnect deploy shiny bundle \
+            --account "$SHINYAPPS_ACCOUNT" \
+            --token "$SHINYAPPS_TOKEN" \
+            --secret "$SHINYAPPS_SECRET" \
+            --title simulateur-paie-tunisie \
+            --entrypoint app:app
