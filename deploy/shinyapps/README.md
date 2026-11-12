@@ -57,6 +57,38 @@ Tant qu'elles ne sont pas définies, le job échoue proprement (rien n'est
 déployé). Pour les changer : régénère le token sur shinyapps.io et mets à jour
 le secret.
 
+### Propager les secrets à d'autres repos (pension, impôt…)
+
+Les secrets GitHub ne se copient pas d'un repo à l'autre automatiquement. Pour
+éviter de les ressaisir dans l'interface, utilise
+`scripts/set_shinyapps_secrets.sh` (lit les valeurs depuis l'environnement, les
+pousse via `gh`) :
+
+```bash
+SHINYAPPS_ACCOUNT=benjello \
+SHINYAPPS_TOKEN=<token> \
+SHINYAPPS_SECRET=<secret> \
+scripts/set_shinyapps_secrets.sh benjello/tunisie-simulateur-pension
+```
+
+(Préfixe la commande d'un espace pour ne pas la garder dans l'historique si
+`HISTCONTROL=ignorespace`.) Le repo cible doit avoir le workflow `deploy.yml`
+(adapté à son app) pour que les secrets servent.
+
+> **Alternative pour beaucoup de repos** : les déplacer dans une **organisation
+> GitHub** et définir les secrets `SHINYAPPS_*` **une seule fois** au niveau de
+> l'org (accessibles à tous ses repos). Surdimensionné pour 2-3 repos.
+
+Ce script est générique : il peut être copié dans chaque simulateur (comme les
+agents, via un kit) ou lancé depuis le dépôt paie en ciblant un autre repo.
+
+Procédure complète côté repo pension : voir
+`docs/notes/relais-pension.md` (chantier pension) — copier `deploy/shinyapps/`,
+adapter `app.py`/`requirements.txt`, ajouter `deploy.yml`, puis pousser les
+secrets avec ce script.
+
+## Limite du plan gratuit
+
 ## Limite du plan gratuit
 
 25 h actives/mois. Au-delà, l'app est suspendue jusqu'au mois suivant. Pour un

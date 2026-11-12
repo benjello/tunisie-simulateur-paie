@@ -1,6 +1,11 @@
 # Correspondance cas de test <-> simulateurs en ligne : NE JAMAIS pousser.
 sources_locales/
 
+# Secrets locaux (shinyapps.io, etc.) : NE JAMAIS pousser.
+.env
+.env.*
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
