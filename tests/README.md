@@ -15,6 +15,11 @@ openfisca test tests/paie/ -c openfisca_tunisia
 - `paie/rsna_2024.yaml` — fiche de paie RSNA, revenus 2024 (CNSS 9,18 %).
 - `paie/rsna_2025.yaml` — fiche de paie RSNA, revenus 2025 (CNSS 9,68 %,
   barème LF2025).
+- `paie/regimes_2025.yaml` — autres régimes 2025 : RSA (4,5725 %), RSAA
+  (6,99 %), CNRPS (13,25 %, UGTT incluse).
+- `test_inversion_net_brut.py` — test pytest de l'inversion net → brut côté
+  client (aller-retour brut→net→brut). Nécessite l'API lancée ; ignoré sinon.
+  Lancer : `python -m pytest tests/test_inversion_net_brut.py`.
 
 Les valeurs attendues sont celles du moteur OpenFisca-Tunisia, cohérentes avec
 le droit de l'année testée. Les cas sont comparés — hors dépôt — à des

@@ -1,0 +1,51 @@
+# Fiche de paie — autres régimes de sécurité sociale, revenus 2025.
+#
+# Au-delà du régime non agricole (RSNA, voir rsna_2025.yaml), on vérifie les
+# taux de cotisation salariale et patronale par régime, et le net complet
+# (abattement 10 %, barème IRPP 2025, CSS).
+#
+# Taux salariaux 2025 (vérifiés) : RSA 4,5725 % · RSAA 6,99 % · CNRPS 13,25 %
+# (dont 0,30 % de cotisation syndicale UGTT, incluse dans cotisations_salarie).
+# Valeurs attendues = moteur OpenFisca-Tunisia.
+
+- name: RSA (salarié agricole) 2025 — brut 2000, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsa
+    salaire_de_base: 2000
+  output:
+    cotisations_salarie: 91.45
+    salaire_imposable: 1908.55
+    irpp_salarie_preleve_a_la_source: 293.3983
+    contribution_sociale_solidarite_prelevee_a_la_source: 8.7094
+    salaire_net_a_payer: 1606.4423
+    cotisations_employeur: 154.35
+
+- name: RSAA (agricole amélioré) 2025 — brut 2000, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsaa
+    salaire_de_base: 2000
+  output:
+    cotisations_salarie: 139.80
+    salaire_imposable: 1860.20
+    irpp_salarie_preleve_a_la_source: 278.8933
+    contribution_sociale_solidarite_prelevee_a_la_source: 8.4677
+    salaire_net_a_payer: 1572.8390
+    cotisations_employeur: 249.60
+
+- name: CNRPS (secteur public) 2025 — brut 2000, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: salarie_cnrps
+    salaire_de_base: 2000
+  output:
+    cotisations_salarie: 262.00
+    salaire_imposable: 1738.00
+    irpp_salarie_preleve_a_la_source: 247.00
+    contribution_sociale_solidarite_prelevee_a_la_source: 7.8567
+    salaire_net_a_payer: 1483.1433
+    cotisations_employeur: 370.00
