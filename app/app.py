@@ -48,6 +48,14 @@ app_ui = ui.page_sidebar(
             "input.sens === 'brut_net'",
             ui.input_numeric("salaire_de_base", "Salaire de base (DT/mois)", 1500, min=0, step=50),
             ui.input_numeric("primes", "Primes et indemnités (DT/mois)", 0, min=0, step=50),
+            ui.input_numeric("heures_sup", "Heures supplémentaires (nb/mois)", 0, min=0, step=1),
+            ui.input_numeric("taux_horaire", "Taux horaire normal (DT/h)", 0, min=0, step=0.5),
+            ui.input_select(
+                "majoration_hs",
+                "Majoration heures supp.",
+                {"1.25": "25 %", "1.50": "50 %", "1.75": "75 %"},
+                selected="1.25",
+            ),
         ),
         ui.panel_conditional(
             "input.sens === 'net_brut'",
@@ -60,6 +68,11 @@ app_ui = ui.page_sidebar(
         ui.input_numeric("nb_enf_sup", "Étudiants sans bourse", 0, min=0, max=10, step=1),
         ui.input_numeric("nb_infirme", "Enfants handicapés", 0, min=0, max=10, step=1),
         ui.hr(),
+        ui.input_checkbox(
+            "adhesion_complementaire",
+            "Retraite complémentaire CNSS (RSNA, > 6×SMIG)",
+            False,
+        ),
         ui.input_action_button("calculer", "Calculer le bulletin", class_="btn-primary"),
         width=320,
     ),
@@ -102,6 +115,7 @@ def server(input, output, session):
     def resultat():
         annee = int(input.annee())
         regime = str(input.regime())
+        adhesion = bool(input.adhesion_complementaire())
         fam = dict(
             chef_de_famille=bool(input.chef_de_famille()),
             nb_enf=int(input.nb_enf() or 0),
@@ -111,15 +125,25 @@ def server(input, output, session):
         if str(input.sens()) == "net_brut":
             try:
                 return ("ok", brut_depuis_net(
-                    float(input.net_cible() or 0), annee=annee, regime=regime, **fam
+                    float(input.net_cible() or 0), annee=annee, regime=regime,
+                    adhesion_complementaire=adhesion, **fam,
                 ))
             except httpx.HTTPError as erreur:
                 return ("erreur", str(erreur))
+        # Heures supplémentaires : non modélisées par OpenFisca côté bulletin.
+        # On les valorise ici (taux horaire × majoration) et on les ajoute aux
+        # primes, qui entrent dans l'assiette de cotisations et l'imposable.
+        valeur_hs = (
+            float(input.heures_sup() or 0)
+            * float(input.taux_horaire() or 0)
+            * float(input.majoration_hs())
+        )
         situation = construire_situation(
             salaire_de_base=float(input.salaire_de_base() or 0),
             annee=annee,
-            primes=float(input.primes() or 0),
+            primes=float(input.primes() or 0) + valeur_hs,
             regime=regime,
+            adhesion_complementaire=adhesion,
             **fam,
         )
         try:

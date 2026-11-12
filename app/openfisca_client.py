@@ -36,6 +36,7 @@ def construire_situation(
     annee: int,
     primes: float = 0.0,
     regime: str = "rsna",
+    adhesion_complementaire: bool = False,
     chef_de_famille: bool = False,
     nb_enf: int = 0,
     nb_enf_sup: int = 0,
@@ -53,6 +54,7 @@ def construire_situation(
         "salaire_de_base": {mois: salaire_de_base},
         "primes": {mois: primes},
         "regime_securite_sociale_cotisant": {mois: regime},
+        "adhesion_cnss_regime_complementaire": {mois: adhesion_complementaire},
     }
     for variable in VARIABLES_PAIE:
         individu[variable] = {mois: None}
@@ -102,6 +104,7 @@ def brut_depuis_net(
     *,
     annee: int,
     regime: str = "rsna",
+    adhesion_complementaire: bool = False,
     chef_de_famille: bool = False,
     nb_enf: int = 0,
     nb_enf_sup: int = 0,
@@ -119,6 +122,7 @@ def brut_depuis_net(
     if net_cible <= 0:
         situation = construire_situation(
             salaire_de_base=0.0, annee=annee, regime=regime,
+            adhesion_complementaire=adhesion_complementaire,
             chef_de_famille=chef_de_famille, nb_enf=nb_enf,
             nb_enf_sup=nb_enf_sup, nb_infirme=nb_infirme,
         )
@@ -127,6 +131,7 @@ def brut_depuis_net(
     def net_pour(brut: float) -> dict:
         situation = construire_situation(
             salaire_de_base=brut, annee=annee, regime=regime,
+            adhesion_complementaire=adhesion_complementaire,
             chef_de_famille=chef_de_famille, nb_enf=nb_enf,
             nb_enf_sup=nb_enf_sup, nb_infirme=nb_infirme,
         )
