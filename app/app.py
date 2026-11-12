@@ -112,48 +112,38 @@ app_ui = ui.page_sidebar(
     ui.navset_tab(
         ui.nav_panel(
             "Bulletin mensuel",
-            ui.h4("Fiche de paie — salarié (Tunisie)"),
+            ui.output_ui("titre_bulletin_ui"),
             ui.output_ui("bulletin"),
-            ui.download_button("export_pdf", "Télécharger le bulletin (PDF)"),
+            ui.download_button("export_pdf", "PDF"),
             ui.output_plot("courbe_net", height="320px"),
-            ui.markdown(
-                "Calculé par le moteur **OpenFisca-Tunisia** (via son API). "
-                "Convention : cotisations au taux du mois de paie, barème IRPP "
-                "des revenus de l'année de paie (retenue à la source)."
-            ),
+            ui.output_ui("note_bulletin_ui"),
+            value="tab_bulletin",
         ),
         ui.nav_panel(
             "Comparateur",
-            ui.h4("Comparer un même salaire de base"),
-            ui.markdown(
-                "Pour le **salaire de base** et la **situation familiale** saisis "
-                "à gauche : net à payer selon l'année (régime courant) et selon le "
-                "régime (année courante)."
-            ),
+            ui.output_ui("titre_comparateur_ui"),
+            ui.output_ui("note_comparateur_ui"),
             ui.output_ui("comparateur"),
+            value="tab_comparateur",
         ),
         ui.nav_panel(
             "Simulation annuelle (IRPP)",
-            ui.h4("IRPP annuel et déductions"),
-            ui.markdown(
-                "Les déductions ci-dessous (assurance-vie, crédit logement, "
-                "épargne, dons…) **ne réduisent pas la retenue à la source "
-                "mensuelle** : elles ne jouent qu'au niveau de l'**IRPP annuel**, "
-                "en régularisation lors de la déclaration. Salaire annuel = "
-                "12 × salaire de base mensuel saisi."
-            ),
+            ui.output_ui("titre_annuel_ui"),
+            ui.output_ui("note_annuel_ui"),
             ui.layout_sidebar(
                 ui.sidebar(
-                    ui.h6("Déductions annuelles (DT/an)"),
+                    ui.output_ui("titre_deductions_ui"),
                     *[
-                        ui.input_numeric(f"ded_{var}", libelle, 0, min=0, step=100)
-                        for var, libelle in DEDUCTIONS_ANNUELLES.items()
+                        ui.input_numeric(f"ded_{var}", var, 0, min=0, step=100)
+                        for var in DEDUCTIONS_ANNUELLES
                     ],
                     width=330,
                 ),
                 ui.output_ui("annuel"),
             ),
+            value="tab_annuel",
         ),
+        id="onglets",
     ),
     title="Simulateur de paie Tunisie",
 )
@@ -228,6 +218,38 @@ def server(input, output, session):
         ui.update_action_button("calculer", label=t("calculer", lang))
         for var in DEDUCTIONS_ANNUELLES:
             ui.update_numeric(f"ded_{var}", label=t(CLE_DEDUCTION[var], lang))
+        # NB : Shiny ne permet pas de renommer un onglet après création ; les
+        # libellés d'onglets restent dans la langue de définition. Tout le
+        # CONTENU (titres de section, notes, tableaux, champs) est traduit.
+
+    # Titres et notes des onglets (sorties réactives traduites).
+    @render.ui
+    def titre_bulletin_ui():
+        return ui.h4(t("titre_bulletin", str(input.lang())))
+
+    @render.ui
+    def note_bulletin_ui():
+        return ui.markdown(t("note_moteur", str(input.lang())))
+
+    @render.ui
+    def titre_comparateur_ui():
+        return ui.h4(t("titre_comparateur", str(input.lang())))
+
+    @render.ui
+    def note_comparateur_ui():
+        return ui.markdown(t("note_comparateur", str(input.lang())))
+
+    @render.ui
+    def titre_annuel_ui():
+        return ui.h4(t("titre_annuel", str(input.lang())))
+
+    @render.ui
+    def note_annuel_ui():
+        return ui.markdown(t("note_annuel", str(input.lang())))
+
+    @render.ui
+    def titre_deductions_ui():
+        return ui.h6(t("deductions_annuelles", str(input.lang())))
 
     @render.ui
     def statut_api():
@@ -374,6 +396,10 @@ def server(input, output, session):
         import matplotlib.pyplot as plt
 
         statut, contenu = resultat()
+        # matplotlib ne rend pas correctement l'arabe RTL (réserveré à une
+        # itération ultérieure avec arabic-reshaper + python-bidi) : le PDF est
+        # produit en français quelle que soit la langue de l'UI.
+        lang_pdf = "fr"
         fig, ax = plt.subplots(figsize=(8, 6))
         ax.axis("off")
         if statut != "ok":
@@ -382,25 +408,25 @@ def server(input, output, session):
             b = contenu
             css = b["contribution_sociale_solidarite_prelevee_a_la_source"] or 0.0
             lignes = [
-                ("Salaire brut", b["salaire_brut"]),
-                ("CNSS salariale", -(b["cotisations_salarie"] or 0.0)),
-                ("Salaire imposable", b["salaire_imposable"]),
-                ("IRPP (retenue à la source)", -(b["irpp_salarie_preleve_a_la_source"] or 0.0)),
-                ("CSS", -css),
-                ("Net à payer", b["salaire_net_a_payer"]),
+                (t("salaire_brut", lang_pdf), b["salaire_brut"]),
+                (t("cnss_salariale", lang_pdf), -(b["cotisations_salarie"] or 0.0)),
+                (t("salaire_imposable", lang_pdf), b["salaire_imposable"]),
+                (t("irpp_ras", lang_pdf), -(b["irpp_salarie_preleve_a_la_source"] or 0.0)),
+                (t("css", lang_pdf), -css),
+                (t("net_a_payer", lang_pdf), b["salaire_net_a_payer"]),
                 ("", None),
-                ("CNSS patronale", b["cotisations_employeur"]),
-                ("Coût total employeur", b["salaire_super_brut"]),
+                (t("cnss_patronale", lang_pdf), b["cotisations_employeur"]),
+                (t("cout_employeur", lang_pdf), b["salaire_super_brut"]),
             ]
             ax.set_title(
-                f"Fiche de paie — {str(input.regime()).upper()} {int(input.annee())}",
+                f"{t('titre_bulletin', lang_pdf)} — {str(input.regime()).upper()} {int(input.annee())}",
                 fontsize=14, fontweight="bold",
             )
             y = 0.9
             for libelle, montant in lignes:
                 if libelle:
                     val = "" if montant is None else f"{montant:,.3f} DT".replace(",", " ")
-                    gras = libelle in ("Net à payer", "Coût total employeur")
+                    gras = libelle in (t("net_a_payer", lang_pdf), t("cout_employeur", lang_pdf))
                     ax.text(0.05, y, libelle, fontsize=11,
                             fontweight="bold" if gras else "normal")
                     ax.text(0.95, y, val, fontsize=11, ha="right",

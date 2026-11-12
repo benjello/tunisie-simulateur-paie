@@ -18,12 +18,14 @@ Hiérarchisées par ratio valeur/effort. Cochées au fur et à mesure.
 - [x] **A4 — Export du bulletin** PDF (via matplotlib).
 - [x] **A5 — Taux effectif + graphique** net = f(brut).
 - [x] **A6 — Comparateur** multi-années / multi-régimes (onglet dédié).
-- [x] **A7 — Bilingue FR/AR** : module `app/i18n.py` (dictionnaire FR/AR),
-  sélecteur de langue, direction **RTL** pour l'arabe, labels du panneau
-  latéral et **toutes les sorties** (bulletin, comparateur, annuel) traduits.
-  *Limite connue* : les titres d'onglets et quelques notes statiques définis
-  dans `app_ui` restent en FR (nécessiteraient `update_navset` avec `value=`) —
-  à finaliser dans une itération ultérieure. Le PDF export reste en FR.
+- [x] **A7 — Bilingue FR/AR** : module `app/i18n.py`, sélecteur de langue,
+  direction **RTL** pour l'arabe, labels du panneau latéral, **toutes les
+  sorties** ET **titres de section + notes des 3 onglets** traduits.
+  *Limites résiduelles* : (1) les **libellés d'onglets** (barre de navigation)
+  restent dans la langue de définition — Shiny ne permet pas de les renommer
+  après création ; (2) le **PDF** est produit en français quelle que soit la
+  langue (matplotlib ne rend pas l'arabe RTL sans `arabic-reshaper` +
+  `python-bidi`). À traiter si besoin dans une itération dédiée.
 
 ### Couverture fonctionnelle
 - [x] **A8 — Onglet annuel enrichi** (effet des déductions sur l'IRPP).
