@@ -23,6 +23,33 @@ from openfisca_client import (
     construire_situation,
     valoriser_heures_supp,
 )
+from i18n import LANGUES, t
+
+# Clés i18n des branches CNSS et déductions (mêmes ordres que dans le client).
+CLE_BRANCHE = {
+    "retraite_salarie": "br_retraite",
+    "retraite_complementaire_salarie": "br_retraite_compl",
+    "maladie_salarie": "br_maladie",
+    "maternite_salarie": "br_maternite",
+    "deces_salarie": "br_deces",
+    "famille_salarie": "br_famille",
+    "accident_du_travail_salarie": "br_accident",
+    "perte_d_emploi_salarie": "br_perte_emploi",
+    "protection_sociale_travailleurs_salarie": "br_protection",
+    "soin_salarie": "br_soins",
+}
+CLE_REGIME = {
+    "rsna": "reg_rsna", "rsa": "reg_rsa", "rsaa": "reg_rsaa",
+    "salarie_cnrps": "reg_cnrps", "neant": "reg_neant",
+}
+CLE_DEDUCTION = {
+    "prime_assurance_vie": "ded_assurance_vie",
+    "interets_acquisition_logement": "ded_logement",
+    "compte_epargne_en_actions": "ded_cea",
+    "compte_epargne_investissement": "ded_cei",
+    "pret_universitaire": "ded_pret_univ",
+    "dons": "ded_dons",
+}
 
 ANNEES = [str(a) for a in range(2020, 2027)]
 
@@ -39,6 +66,7 @@ REGIMES = {
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
+        ui.input_select("lang", "Langue / اللغة", LANGUES, selected="fr"),
         ui.input_select("annee", "Année de paie", ANNEES, selected="2025"),
         ui.input_select("regime", "Régime de sécurité sociale", REGIMES, selected="rsna"),
         ui.input_radio_buttons(
@@ -156,6 +184,51 @@ def _ligne(libelle: str, montant, *, fort: bool = False) -> ui.Tag:
 
 
 def server(input, output, session):
+    @reactive.effect
+    def _appliquer_langue():
+        lang = str(input.lang())
+        # Direction du document : RTL pour l'arabe.
+        direction = "rtl" if lang == "ar" else "ltr"
+        ui.insert_ui(
+            ui.tags.script(
+                f"document.documentElement.setAttribute('dir', '{direction}');"
+                f"document.documentElement.setAttribute('lang', '{lang}');"
+            ),
+            selector="body",
+            where="beforeEnd",
+            immediate=True,
+        )
+        # Labels des champs du panneau latéral.
+        ui.update_select("annee", label=t("annee", lang))
+        ui.update_select(
+            "regime", label=t("regime", lang),
+            choices={k: t(CLE_REGIME[k], lang) for k in REGIMES},
+            selected=str(input.regime()),
+        )
+        ui.update_radio_buttons(
+            "sens", label=t("sens", lang),
+            choices={"brut_net": t("brut_net", lang), "net_brut": t("net_brut", lang)},
+            selected=str(input.sens()),
+        )
+        ui.update_numeric("salaire_de_base", label=t("salaire_base", lang))
+        ui.update_numeric("primes", label=t("primes", lang))
+        ui.update_numeric("heures_sup", label=t("heures_sup", lang))
+        ui.update_select(
+            "regime_horaire", label=t("regime_horaire", lang),
+            choices={"48h": t("reg_48h", lang), "40h": t("reg_40h", lang)},
+            selected=str(input.regime_horaire()),
+        )
+        ui.update_numeric("net_cible", label=t("net_cible", lang))
+        ui.update_numeric("primes_net", label=t("primes_net", lang))
+        ui.update_checkbox("chef_de_famille", label=t("chef_famille", lang))
+        ui.update_numeric("nb_enf", label=t("nb_enf", lang))
+        ui.update_numeric("nb_enf_sup", label=t("nb_enf_sup", lang))
+        ui.update_numeric("nb_infirme", label=t("nb_infirme", lang))
+        ui.update_checkbox("adhesion_complementaire", label=t("adhesion_compl", lang))
+        ui.update_action_button("calculer", label=t("calculer", lang))
+        for var in DEDUCTIONS_ANNUELLES:
+            ui.update_numeric(f"ded_{var}", label=t(CLE_DEDUCTION[var], lang))
+
     @render.ui
     def statut_api():
         if api_disponible():
@@ -184,9 +257,9 @@ def server(input, output, session):
             net_cible = float(input.net_cible() or 0)
             primes_net = float(input.primes_net() or 0)
             if net_cible <= 0:
-                return ("invalide", "Saisissez un net à payer strictement positif.")
+                return ("invalide", "err_net_positif")
             if primes_net < 0:
-                return ("invalide", "Les primes ne peuvent pas être négatives.")
+                return ("invalide", "err_primes_neg")
             try:
                 return ("ok", brut_depuis_net(
                     net_cible, annee=annee, regime=regime,
@@ -198,9 +271,9 @@ def server(input, output, session):
         salaire_base = float(input.salaire_de_base() or 0)
         primes_val = float(input.primes() or 0)
         if salaire_base < 0 or primes_val < 0:
-            return ("invalide", "Le salaire et les primes ne peuvent pas être négatifs.")
+            return ("invalide", "err_salaire_neg")
         if float(input.heures_sup() or 0) < 0:
-            return ("invalide", "Le nombre d'heures supplémentaires ne peut pas être négatif.")
+            return ("invalide", "err_heures_neg")
         # Heures supplémentaires : non modélisées par OpenFisca côté bulletin.
         # On les valorise selon le régime horaire légal (art. 90 code du travail)
         # à partir du salaire de base, et on les ajoute aux primes.
@@ -224,12 +297,13 @@ def server(input, output, session):
 
     @render.ui
     def bulletin():
+        lang = str(input.lang())
         statut, contenu = resultat()
         if statut == "invalide":
-            return ui.div(ui.markdown(f"⚠️ {contenu}"), class_="alert alert-warning")
+            return ui.div(ui.markdown(f"⚠️ {t(contenu, lang)}"), class_="alert alert-warning")
         if statut == "erreur":
             return ui.div(
-                ui.markdown(f"**Erreur de calcul :** {contenu}"),
+                ui.markdown(f"**{contenu}**"),
                 class_="alert alert-danger",
             )
 
@@ -239,35 +313,30 @@ def server(input, output, session):
         avertissement = ui.TagList()
         if str(input.regime()) == "neant":
             avertissement = ui.div(
-                ui.markdown(
-                    "ℹ️ Régime **exonéré** sélectionné : aucune cotisation sociale. "
-                    "CIVP/stage et entreprise totalement exportatrice ne sont pas "
-                    "paramétrés finement dans le modèle ; le résultat suppose une "
-                    "exonération totale."
-                ),
+                ui.markdown("ℹ️ " + t("avert_exonere", lang)),
                 class_="alert alert-info",
             )
         css = b["contribution_sociale_solidarite_prelevee_a_la_source"] or 0.0
 
         # Détail des branches CNSS non nulles (repli dans un <details>).
         lignes_branches = [
-            _ligne(f" {libelle}", -(b[var] or 0.0))
-            for var, libelle in BRANCHES_CNSS_SALARIE.items()
+            _ligne(f" {t(CLE_BRANCHE[var], lang)}", -(b[var] or 0.0))
+            for var in BRANCHES_CNSS_SALARIE
             if (b.get(var) or 0.0) > 0
         ]
         detail_cnss = ui.tags.details(
-            ui.tags.summary("Détail des branches CNSS"),
+            ui.tags.summary(t("detail_cnss", lang)),
             ui.tags.table(ui.tags.tbody(*lignes_branches), class_="table table-sm"),
         )
 
         salarie = ui.tags.table(
             ui.tags.tbody(
-                _ligne("Salaire brut", brut, fort=True),
-                _ligne("CNSS salariale", -(b["cotisations_salarie"] or 0.0)),
-                _ligne("Salaire imposable", b["salaire_imposable"]),
-                _ligne("IRPP (retenue à la source)", -(b["irpp_salarie_preleve_a_la_source"] or 0.0)),
-                _ligne("CSS (contribution solidarité)", -css),
-                _ligne("Net à payer", b["salaire_net_a_payer"], fort=True),
+                _ligne(t("salaire_brut", lang), brut, fort=True),
+                _ligne(t("cnss_salariale", lang), -(b["cotisations_salarie"] or 0.0)),
+                _ligne(t("salaire_imposable", lang), b["salaire_imposable"]),
+                _ligne(t("irpp_ras", lang), -(b["irpp_salarie_preleve_a_la_source"] or 0.0)),
+                _ligne(t("css", lang), -css),
+                _ligne(t("net_a_payer", lang), b["salaire_net_a_payer"], fort=True),
             ),
             class_="table table-sm",
         )
@@ -276,16 +345,15 @@ def server(input, output, session):
         taux_preleve = (1 - net / brut) * 100 if brut > 0 else 0.0
         taux_txt = ui.tags.p(
             ui.tags.small(
-                f"Taux de prélèvement global : {taux_preleve:.1f} % "
-                f"(net = {net / brut * 100:.1f} % du brut)"
+                f"{t('taux_preleve', lang)} : {taux_preleve:.1f} %"
                 if brut > 0 else ""
             )
         )
 
         employeur = ui.tags.table(
             ui.tags.tbody(
-                _ligne("CNSS patronale", b["cotisations_employeur"]),
-                _ligne("Coût total employeur (super-brut)", b["salaire_super_brut"], fort=True),
+                _ligne(t("cnss_patronale", lang), b["cotisations_employeur"]),
+                _ligne(t("cout_employeur", lang), b["salaire_super_brut"], fort=True),
             ),
             class_="table table-sm",
         )
@@ -293,8 +361,8 @@ def server(input, output, session):
         return ui.TagList(
             avertissement,
             ui.layout_columns(
-                ui.card(ui.card_header("Côté salarié"), salarie, taux_txt, detail_cnss),
-                ui.card(ui.card_header("Côté employeur"), employeur),
+                ui.card(ui.card_header(t("cote_salarie", lang)), salarie, taux_txt, detail_cnss),
+                ui.card(ui.card_header(t("cote_employeur", lang)), employeur),
                 col_widths=(7, 5),
             ),
         )
@@ -375,10 +443,11 @@ def server(input, output, session):
     @render.ui
     @reactive.event(input.calculer, ignore_none=False)
     def comparateur():
+        lang = str(input.lang())
         salaire_base = float(input.salaire_de_base() or 0)
         if salaire_base <= 0:
             return ui.div(
-                ui.markdown("Saisissez un salaire de base positif (onglet Bulletin)."),
+                ui.markdown("⚠️ " + t("err_salaire_neg", lang)),
                 class_="alert alert-warning",
             )
         fam = dict(
@@ -411,11 +480,11 @@ def server(input, output, session):
                     )
                 )
             lignes_regimes = []
-            for code, libelle in REGIMES.items():
+            for code in REGIMES:
                 n, c = net(annee_courante, code)
                 lignes_regimes.append(
                     ui.tags.tr(
-                        ui.tags.td(libelle),
+                        ui.tags.td(t(CLE_REGIME[code], lang)),
                         ui.tags.td(f"{c:.3f}", style="text-align:right"),
                         ui.tags.td(f"{n:.3f}", style="text-align:right"),
                     )
@@ -428,17 +497,17 @@ def server(input, output, session):
         entete = ui.tags.thead(
             ui.tags.tr(
                 ui.tags.th(""),
-                ui.tags.th("CNSS", style="text-align:right"),
-                ui.tags.th("Net", style="text-align:right"),
+                ui.tags.th(t("col_cnss", lang), style="text-align:right"),
+                ui.tags.th(t("col_net", lang), style="text-align:right"),
             )
         )
         return ui.layout_columns(
             ui.card(
-                ui.card_header(f"Par année — régime {regime_courant.upper()}"),
+                ui.card_header(f"{t('par_annee', lang)} — {regime_courant.upper()}"),
                 ui.tags.table(entete, ui.tags.tbody(*lignes_annees), class_="table table-sm"),
             ),
             ui.card(
-                ui.card_header(f"Par régime — année {annee_courante}"),
+                ui.card_header(f"{t('par_regime', lang)} — {annee_courante}"),
                 ui.tags.table(entete, ui.tags.tbody(*lignes_regimes), class_="table table-sm"),
             ),
             col_widths=(6, 6),
@@ -447,6 +516,7 @@ def server(input, output, session):
     @render.ui
     @reactive.event(input.calculer, ignore_none=False)
     def annuel():
+        lang = str(input.lang())
         annee = int(input.annee())
         salaire_mensuel = float(input.salaire_de_base() or 0)
         deductions = {
@@ -475,15 +545,14 @@ def server(input, output, session):
         ras = res["ras_annuelle"] or 0.0
         solde = res["irpp_net_a_payer"] or 0.0
         libelle_solde = (
-            "Solde à payer (régularisation)" if solde >= 0
-            else "Trop-perçu (restitution)"
+            t("solde_payer", lang) if solde >= 0 else t("trop_percu", lang)
         )
 
         table = ui.tags.table(
             ui.tags.tbody(
-                _ligne("Salaire annuel (12 mois)", salaire_mensuel * 12),
-                _ligne("IRPP annuel dû", irpp, fort=True),
-                _ligne("Retenue à la source déjà prélevée", -ras),
+                _ligne(t("salaire_annuel", lang), salaire_mensuel * 12),
+                _ligne(t("irpp_annuel_du", lang), irpp, fort=True),
+                _ligne(t("ras_prelevee", lang), -ras),
                 _ligne(libelle_solde, abs(solde), fort=True),
             ),
             class_="table table-sm",
@@ -506,17 +575,17 @@ def server(input, output, session):
                 irpp_sans = ref["irpp"] or 0.0
                 economie = irpp_sans - irpp
                 lignes_ded = [
-                    _ligne(f" {DEDUCTIONS_ANNUELLES[v]}", -montant)
+                    _ligne(f" {t(CLE_DEDUCTION[v], lang)}", -montant)
                     for v, montant in deductions.items()
                 ]
                 effet = ui.card(
-                    ui.card_header("Effet des déductions"),
+                    ui.card_header(t("effet_deductions", lang)),
                     ui.tags.table(
                         ui.tags.tbody(
-                            _ligne("IRPP sans déduction", irpp_sans),
+                            _ligne(t("irpp_sans", lang), irpp_sans),
                             *lignes_ded,
-                            _ligne("IRPP avec déductions", irpp),
-                            _ligne("Économie d'impôt", economie, fort=True),
+                            _ligne(t("irpp_avec", lang), irpp),
+                            _ligne(t("economie", lang), economie, fort=True),
                         ),
                         class_="table table-sm",
                     ),
@@ -524,7 +593,7 @@ def server(input, output, session):
             except httpx.HTTPError:
                 effet = ui.TagList()
 
-        return ui.TagList(ui.card(ui.card_header("IRPP annuel"), table), effet)
+        return ui.TagList(ui.card(ui.card_header(t("irpp_annuel_du", lang)), table), effet)
 
 
 app = App(app_ui, server)

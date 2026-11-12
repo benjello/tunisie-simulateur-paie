@@ -18,8 +18,12 @@ Hiérarchisées par ratio valeur/effort. Cochées au fur et à mesure.
 - [x] **A4 — Export du bulletin** PDF (via matplotlib).
 - [x] **A5 — Taux effectif + graphique** net = f(brut).
 - [x] **A6 — Comparateur** multi-années / multi-régimes (onglet dédié).
-- [ ] **A7 — Bilingue FR/AR** (openfisca-tunisia est bilingue). *Reste à faire —
-  chantier i18n conséquent (traductions + RTL arabe).*
+- [x] **A7 — Bilingue FR/AR** : module `app/i18n.py` (dictionnaire FR/AR),
+  sélecteur de langue, direction **RTL** pour l'arabe, labels du panneau
+  latéral et **toutes les sorties** (bulletin, comparateur, annuel) traduits.
+  *Limite connue* : les titres d'onglets et quelques notes statiques définis
+  dans `app_ui` restent en FR (nécessiteraient `update_navset` avec `value=`) —
+  à finaliser dans une itération ultérieure. Le PDF export reste en FR.
 
 ### Couverture fonctionnelle
 - [x] **A8 — Onglet annuel enrichi** (effet des déductions sur l'IRPP).
