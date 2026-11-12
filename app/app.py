@@ -15,6 +15,7 @@ from shiny import App, reactive, render, ui
 
 from openfisca_client import (
     api_disponible,
+    brut_depuis_net,
     calculer_bulletin,
     construire_situation,
 )
@@ -36,8 +37,22 @@ app_ui = ui.page_sidebar(
     ui.sidebar(
         ui.input_select("annee", "Année de paie", ANNEES, selected="2025"),
         ui.input_select("regime", "Régime de sécurité sociale", REGIMES, selected="rsna"),
-        ui.input_numeric("salaire_de_base", "Salaire de base (DT/mois)", 1500, min=0, step=50),
-        ui.input_numeric("primes", "Primes et indemnités (DT/mois)", 0, min=0, step=50),
+        ui.input_radio_buttons(
+            "sens",
+            "Sens du calcul",
+            {"brut_net": "Brut → Net", "net_brut": "Net → Brut"},
+            selected="brut_net",
+            inline=True,
+        ),
+        ui.panel_conditional(
+            "input.sens === 'brut_net'",
+            ui.input_numeric("salaire_de_base", "Salaire de base (DT/mois)", 1500, min=0, step=50),
+            ui.input_numeric("primes", "Primes et indemnités (DT/mois)", 0, min=0, step=50),
+        ),
+        ui.panel_conditional(
+            "input.sens === 'net_brut'",
+            ui.input_numeric("net_cible", "Net à payer souhaité (DT/mois)", 1200, min=0, step=50),
+        ),
         ui.hr(),
         ui.h6("Situation familiale (IRPP)"),
         ui.input_checkbox("chef_de_famille", "Chef de famille", False),
@@ -86,15 +101,26 @@ def server(input, output, session):
     @reactive.event(input.calculer, ignore_none=False)
     def resultat():
         annee = int(input.annee())
-        situation = construire_situation(
-            salaire_de_base=float(input.salaire_de_base() or 0),
-            annee=annee,
-            primes=float(input.primes() or 0),
-            regime=str(input.regime()),
+        regime = str(input.regime())
+        fam = dict(
             chef_de_famille=bool(input.chef_de_famille()),
             nb_enf=int(input.nb_enf() or 0),
             nb_enf_sup=int(input.nb_enf_sup() or 0),
             nb_infirme=int(input.nb_infirme() or 0),
+        )
+        if str(input.sens()) == "net_brut":
+            try:
+                return ("ok", brut_depuis_net(
+                    float(input.net_cible() or 0), annee=annee, regime=regime, **fam
+                ))
+            except httpx.HTTPError as erreur:
+                return ("erreur", str(erreur))
+        situation = construire_situation(
+            salaire_de_base=float(input.salaire_de_base() or 0),
+            annee=annee,
+            primes=float(input.primes() or 0),
+            regime=regime,
+            **fam,
         )
         try:
             return ("ok", calculer_bulletin(situation, annee=annee))

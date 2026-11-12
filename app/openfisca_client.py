@@ -97,6 +97,64 @@ def calculer_bulletin(situation: dict, *, annee: int, timeout: float = 30.0) -> 
     return bulletin
 
 
+def brut_depuis_net(
+    net_cible: float,
+    *,
+    annee: int,
+    regime: str = "rsna",
+    chef_de_famille: bool = False,
+    nb_enf: int = 0,
+    nb_enf_sup: int = 0,
+    nb_infirme: int = 0,
+    tolerance: float = 0.01,
+    max_iter: int = 60,
+) -> dict:
+    """Inverse net -> brut par dichotomie sur l'API brut -> net.
+
+    Le net est strictement croissant avec le brut, donc la dichotomie converge
+    toujours. On ne dépend ni de scipy ni d'une réforme côté serveur : on appelle
+    l'API brut -> net standard. Renvoie le bulletin complet (comme calculer_bulletin)
+    avec le brut trouvé.
+    """
+    if net_cible <= 0:
+        situation = construire_situation(
+            salaire_de_base=0.0, annee=annee, regime=regime,
+            chef_de_famille=chef_de_famille, nb_enf=nb_enf,
+            nb_enf_sup=nb_enf_sup, nb_infirme=nb_infirme,
+        )
+        return calculer_bulletin(situation, annee=annee)
+
+    def net_pour(brut: float) -> dict:
+        situation = construire_situation(
+            salaire_de_base=brut, annee=annee, regime=regime,
+            chef_de_famille=chef_de_famille, nb_enf=nb_enf,
+            nb_enf_sup=nb_enf_sup, nb_infirme=nb_infirme,
+        )
+        return calculer_bulletin(situation, annee=annee)
+
+    # Borne haute : le brut est forcément > net. On double jusqu'à dépasser la cible.
+    bas, haut = net_cible, net_cible * 2.0
+    bulletin_haut = net_pour(haut)
+    gardes = 0
+    while (bulletin_haut["salaire_net_a_payer"] or 0.0) < net_cible and gardes < 40:
+        haut *= 1.5
+        bulletin_haut = net_pour(haut)
+        gardes += 1
+
+    dernier = bulletin_haut
+    for _ in range(max_iter):
+        milieu = (bas + haut) / 2.0
+        dernier = net_pour(milieu)
+        net_milieu = dernier["salaire_net_a_payer"] or 0.0
+        if abs(net_milieu - net_cible) <= tolerance:
+            break
+        if net_milieu < net_cible:
+            bas = milieu
+        else:
+            haut = milieu
+    return dernier
+
+
 def api_disponible(timeout: float = 3.0) -> bool:
     """Teste si l'API OpenFisca répond (pour un message clair dans l'UI)."""
     try:
