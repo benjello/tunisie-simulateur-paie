@@ -12,9 +12,27 @@ openfisca avec sélecteur de régime (rsna/rsa/rsaa/cnrps/exonéré), agents
 portables (AGENTS.md + .pi/.claude/.opencode). App en local : :8100 (app) / :5000
 (API).
 
-**À faire** (todos actives) : net→brut dans l'app, cas de test RSNA 2025 complet
-+ multi-régimes, options avancées (retraite complémentaire, HS, déductions IRPP),
-hébergement API + piste MCP.
+**Fait (suite)** : net→brut dans l'app (inversion dichotomique côté client, sans
+scipy) ; tests régimes 2025 (RSA/RSAA/CNRPS) + test pytest d'inversion (20 tests
+au total) ; options avancées (retraite complémentaire RSNA, heures suppl.
+valorisées côté app) ; préparation déploiement (`deploy/` : Dockerfile.api +
+procédure + piste MCP).
+
+**Décisions prises pendant le développement** :
+- **Heures supplémentaires** : non modélisées par openfisca côté bulletin (taux
+  de droit du travail présents en paramètres mais aucune variable ne les
+  consomme). Valorisées dans l'app (nb × taux × majoration) et ajoutées aux
+  `primes`.
+- **Déductions IRPP** (assurance-vie, crédit logement, CEA/CEI, dons, prêts
+  universitaires) : elles **n'affectent PAS la retenue à la source mensuelle**
+  (seulement l'IRPP annuel `irpp`). Les exposer dans le bulletin mensuel serait
+  trompeur → réservées à un futur **onglet « simulation annuelle »** (backlog).
+
+**À faire (todos actives)** :
+- **#16 Hébergement API** : préparé (`deploy/`), mais le déploiement effectif
+  (HF Spaces / VPS) requiert des identifiants — action À FAIRE côté utilisateur.
+- **Onglet simulation annuelle IRPP** (pour exposer les déductions ci-dessus).
+- **Piste MCP** (après hébergement API).
 
 **Chantier pension** : délégué à une session dédiée. Tout le contexte capturé
 (modèle `openfisca_tunisia_pension`, simulateurs, cas chiffrés, désaccords) est
