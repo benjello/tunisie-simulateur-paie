@@ -1,10 +1,20 @@
-"""Client de l'API web OpenFisca-Tunisia.
+"""Client de calcul OpenFisca-Tunisia pour l'app de paie.
 
-L'app Shiny ne calcule rien elle-même : elle construit une situation (ménage
-d'un salarié), la poste à l'API OpenFisca-Tunisia, et lit le bulletin dans la
-réponse. OpenFisca reste le seul moteur de calcul.
+L'app Shiny ne contient aucune logique fiscale : elle construit une situation
+(ménage d'un salarié) et demande le bulletin à OpenFisca-Tunisia. OpenFisca
+reste le seul moteur de calcul.
 
-En local, lancer l'API avec :
+Deux modes, selon la variable d'environnement OPENFISCA_MODE :
+- "api" (défaut) : poste la situation à l'API web (openfisca serve). Pratique en
+  développement local (API séparée sur OPENFISCA_API_URL).
+- "local" : calcule en direct, dans le même process, via
+  CountryTaxBenefitSystem. Utilisé en déploiement (HF Spaces) où un seul
+  service tourne : pas d'API HTTP séparée.
+
+Les deux modes consomment le MÊME format de situation JSON ; SimulationBuilder
+sait le lire directement.
+
+En local (mode api), lancer l'API avec :
     openfisca serve -c openfisca_tunisia -p 5000
 """
 
@@ -14,9 +24,62 @@ import os
 
 import httpx
 
-# URL de l'API OpenFisca. Surchargée par la variable d'environnement
-# OPENFISCA_API_URL (utile pour pointer, plus tard, vers une API hébergée).
+# URL de l'API OpenFisca (mode "api"). Surchargée par OPENFISCA_API_URL.
 API_URL = os.environ.get("OPENFISCA_API_URL", "http://localhost:5000")
+
+# Mode de calcul : "api" (HTTP) ou "local" (moteur in-process).
+MODE = os.environ.get("OPENFISCA_MODE", "api").lower()
+
+# TaxBenefitSystem chargé paresseusement en mode local (coûteux à l'import).
+_TBS = None
+
+
+def _get_tbs():
+    global _TBS
+    if _TBS is None:
+        from openfisca_tunisia import CountryTaxBenefitSystem
+
+        _TBS = CountryTaxBenefitSystem()
+    return _TBS
+
+
+def _calculate_local(situation: dict) -> dict:
+    """Calcule en direct via SimulationBuilder et renvoie le résultat au format API.
+
+    Toutes les variables à `None` dans la situation sont calculées et remplies,
+    pour chaque période demandée ; on imite la structure de réponse de l'API.
+    """
+    from openfisca_core.simulations import SimulationBuilder
+
+    tbs = _get_tbs()
+    builder = SimulationBuilder()
+    simulation = builder.build_from_entities(tbs, situation)
+
+    resultat = {k: {} for k in situation}
+    for collection, entites in situation.items():
+        for ident, variables in entites.items():
+            resultat[collection][ident] = {}
+            for variable, periodes in variables.items():
+                if not isinstance(periodes, dict):
+                    # champ non temporel (ex. liste de rôles) : recopié tel quel
+                    resultat[collection][ident][variable] = periodes
+                    continue
+                resultat[collection][ident][variable] = {}
+                for periode, valeur in periodes.items():
+                    if valeur is None:
+                        calcule = simulation.calculate(variable, periode)
+                        valeur = float(calcule[0])
+                    resultat[collection][ident][variable][periode] = valeur
+    return resultat
+
+
+def _calculate(situation: dict, *, timeout: float = 30.0) -> dict:
+    """Route le calcul vers l'API HTTP ou le moteur local selon OPENFISCA_MODE."""
+    if MODE == "local":
+        return _calculate_local(situation)
+    reponse = httpx.post(f"{API_URL}/calculate", json=situation, timeout=timeout)
+    reponse.raise_for_status()
+    return reponse.json()
 
 # Variables du bulletin de paie demandées au moteur (côté salarié + employeur).
 VARIABLES_PAIE = [
@@ -80,13 +143,7 @@ def calculer_bulletin(situation: dict, *, annee: int, timeout: float = 30.0) -> 
     Lève httpx.HTTPError si l'API ne répond pas ou renvoie une erreur.
     """
     mois = f"{annee}-01"
-    reponse = httpx.post(
-        f"{API_URL}/calculate",
-        json=situation,
-        timeout=timeout,
-    )
-    reponse.raise_for_status()
-    data = reponse.json()
+    data = _calculate(situation, timeout=timeout)
 
     individu = data["individus"]["ind0"]
     bulletin = {}
@@ -214,9 +271,8 @@ def calculer_irpp_annuel(
         "foyers_fiscaux": {"f0": foyer},
     }
 
-    reponse = httpx.post(f"{API_URL}/calculate", json=situation, timeout=timeout)
-    reponse.raise_for_status()
-    foyer_res = reponse.json()["foyers_fiscaux"]["f0"]
+    data = _calculate(situation, timeout=timeout)
+    foyer_res = data["foyers_fiscaux"]["f0"]
     irpp = foyer_res.get("irpp", {}).get(an)
     irpp_net = foyer_res.get("irpp_net_a_payer", {}).get(an)
     # RAS annuelle estimée = irpp - irpp_net (ce qui a déjà été prélevé à la source).
@@ -225,7 +281,13 @@ def calculer_irpp_annuel(
 
 
 def api_disponible(timeout: float = 3.0) -> bool:
-    """Teste si l'API OpenFisca répond (pour un message clair dans l'UI)."""
+    """Indique si le moteur est prêt (pour un message clair dans l'UI).
+
+    En mode local, le moteur est toujours disponible (calcul in-process). En
+    mode api, on teste la joignabilité de l'API.
+    """
+    if MODE == "local":
+        return True
     try:
         reponse = httpx.get(f"{API_URL}/spec", timeout=timeout)
         return reponse.status_code == 200
