@@ -177,14 +177,22 @@ def brut_depuis_net(
     croît avec le salaire de base, donc la dichotomie converge toujours. Renvoie
     le bulletin complet (le `salaire_brut` renvoyé inclut les primes).
     """
+    cache: dict[float, dict] = {}
+
     def net_pour(salaire_base: float) -> dict:
+        # Clé au millime : la dichotomie réévalue parfois des bornes identiques.
+        cle = round(salaire_base, 3)
+        if cle in cache:
+            return cache[cle]
         situation = construire_situation(
             salaire_de_base=salaire_base, annee=annee, regime=regime, primes=primes,
             adhesion_complementaire=adhesion_complementaire,
             chef_de_famille=chef_de_famille, nb_enf=nb_enf,
             nb_enf_sup=nb_enf_sup, nb_infirme=nb_infirme,
         )
-        return calculer_bulletin(situation, annee=annee)
+        resultat = calculer_bulletin(situation, annee=annee)
+        cache[cle] = resultat
+        return resultat
 
     # Si les primes seules produisent déjà un net >= cible, le salaire de base est 0.
     bulletin_bas = net_pour(0.0)
