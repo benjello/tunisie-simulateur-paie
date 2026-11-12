@@ -94,6 +94,16 @@ app_ui = ui.page_sidebar(
             ),
         ),
         ui.nav_panel(
+            "Comparateur",
+            ui.h4("Comparer un même salaire de base"),
+            ui.markdown(
+                "Pour le **salaire de base** et la **situation familiale** saisis "
+                "à gauche : net à payer selon l'année (régime courant) et selon le "
+                "régime (année courante)."
+            ),
+            ui.output_ui("comparateur"),
+        ),
+        ui.nav_panel(
             "Simulation annuelle (IRPP)",
             ui.h4("IRPP annuel et déductions"),
             ui.markdown(
@@ -313,6 +323,78 @@ def server(input, output, session):
         ax.legend()
         ax.grid(True, alpha=0.3)
         return fig
+
+    @render.ui
+    @reactive.event(input.calculer, ignore_none=False)
+    def comparateur():
+        salaire_base = float(input.salaire_de_base() or 0)
+        if salaire_base <= 0:
+            return ui.div(
+                ui.markdown("Saisissez un salaire de base positif (onglet Bulletin)."),
+                class_="alert alert-warning",
+            )
+        fam = dict(
+            chef_de_famille=bool(input.chef_de_famille()),
+            nb_enf=int(input.nb_enf() or 0),
+            nb_enf_sup=int(input.nb_enf_sup() or 0),
+            nb_infirme=int(input.nb_infirme() or 0),
+        )
+        regime_courant = str(input.regime())
+        annee_courante = int(input.annee())
+
+        def net(annee, regime):
+            b = calculer_bulletin(
+                construire_situation(
+                    salaire_de_base=salaire_base, annee=annee, regime=regime, **fam
+                ),
+                annee=annee,
+            )
+            return b["salaire_net_a_payer"] or 0.0, b["cotisations_salarie"] or 0.0
+
+        try:
+            lignes_annees = []
+            for a in range(2020, 2027):
+                n, c = net(a, regime_courant)
+                lignes_annees.append(
+                    ui.tags.tr(
+                        ui.tags.td(str(a)),
+                        ui.tags.td(f"{c:.3f}", style="text-align:right"),
+                        ui.tags.td(f"{n:.3f}", style="text-align:right"),
+                    )
+                )
+            lignes_regimes = []
+            for code, libelle in REGIMES.items():
+                n, c = net(annee_courante, code)
+                lignes_regimes.append(
+                    ui.tags.tr(
+                        ui.tags.td(libelle),
+                        ui.tags.td(f"{c:.3f}", style="text-align:right"),
+                        ui.tags.td(f"{n:.3f}", style="text-align:right"),
+                    )
+                )
+        except httpx.HTTPError as erreur:
+            return ui.div(
+                ui.markdown(f"**{_message_erreur(erreur)}**"), class_="alert alert-danger"
+            )
+
+        entete = ui.tags.thead(
+            ui.tags.tr(
+                ui.tags.th(""),
+                ui.tags.th("CNSS", style="text-align:right"),
+                ui.tags.th("Net", style="text-align:right"),
+            )
+        )
+        return ui.layout_columns(
+            ui.card(
+                ui.card_header(f"Par année — régime {regime_courant.upper()}"),
+                ui.tags.table(entete, ui.tags.tbody(*lignes_annees), class_="table table-sm"),
+            ),
+            ui.card(
+                ui.card_header(f"Par régime — année {annee_courante}"),
+                ui.tags.table(entete, ui.tags.tbody(*lignes_regimes), class_="table table-sm"),
+            ),
+            col_widths=(6, 6),
+        )
 
     @render.ui
     @reactive.event(input.calculer, ignore_none=False)
