@@ -21,9 +21,21 @@ from openfisca_client import (
 
 ANNEES = [str(a) for a in range(2020, 2027)]
 
+# Régimes de sécurité sociale pour salariés (valeur openfisca -> libellé UI).
+# CIVP/stage et entreprise totalement exportatrice ne sont pas modelés dans
+# openfisca-tunisia : on les traite en "neant" (exonération, 0 cotisation).
+REGIMES = {
+    "rsna": "Privé non agricole (RSNA)",
+    "rsa": "Salarié agricole (RSA)",
+    "rsaa": "Agricole amélioré (RSAA)",
+    "salarie_cnrps": "Secteur public (CNRPS)",
+    "neant": "Exonéré / CIVP / export (0 cotisation)",
+}
+
 app_ui = ui.page_sidebar(
     ui.sidebar(
         ui.input_select("annee", "Année de paie", ANNEES, selected="2025"),
+        ui.input_select("regime", "Régime de sécurité sociale", REGIMES, selected="rsna"),
         ui.input_numeric("salaire_de_base", "Salaire de base (DT/mois)", 1500, min=0, step=50),
         ui.input_numeric("primes", "Primes et indemnités (DT/mois)", 0, min=0, step=50),
         ui.hr(),
@@ -36,7 +48,7 @@ app_ui = ui.page_sidebar(
         ui.input_action_button("calculer", "Calculer le bulletin", class_="btn-primary"),
         width=320,
     ),
-    ui.h3("Fiche de paie — salarié du privé (CNSS, régime RSNA)"),
+    ui.h3("Fiche de paie — salarié (Tunisie)"),
     ui.output_ui("statut_api"),
     ui.output_ui("bulletin"),
     ui.markdown(
@@ -78,7 +90,7 @@ def server(input, output, session):
             salaire_de_base=float(input.salaire_de_base() or 0),
             annee=annee,
             primes=float(input.primes() or 0),
-            regime="rsna",
+            regime=str(input.regime()),
             chef_de_famille=bool(input.chef_de_famille()),
             nb_enf=int(input.nb_enf() or 0),
             nb_enf_sup=int(input.nb_enf_sup() or 0),
@@ -100,6 +112,18 @@ def server(input, output, session):
 
         b = contenu
         brut = b["salaire_brut"]
+
+        avertissement = ui.TagList()
+        if str(input.regime()) == "neant":
+            avertissement = ui.div(
+                ui.markdown(
+                    "ℹ️ Régime **exonéré** sélectionné : aucune cotisation sociale. "
+                    "CIVP/stage et entreprise totalement exportatrice ne sont pas "
+                    "paramétrés finement dans le modèle ; le résultat suppose une "
+                    "exonération totale."
+                ),
+                class_="alert alert-info",
+            )
         css = b["contribution_sociale_solidarite_prelevee_a_la_source"] or 0.0
 
         salarie = ui.tags.table(
@@ -122,10 +146,13 @@ def server(input, output, session):
             class_="table table-sm",
         )
 
-        return ui.layout_columns(
-            ui.card(ui.card_header("Côté salarié"), salarie),
-            ui.card(ui.card_header("Côté employeur"), employeur),
-            col_widths=(7, 5),
+        return ui.TagList(
+            avertissement,
+            ui.layout_columns(
+                ui.card(ui.card_header("Côté salarié"), salarie),
+                ui.card(ui.card_header("Côté employeur"), employeur),
+                col_widths=(7, 5),
+            ),
         )
 
 
