@@ -120,6 +120,21 @@ app_ui = ui.page_sidebar(
 )
 
 
+def _message_erreur(erreur: Exception) -> str:
+    """Message clair selon le type d'erreur (mode API)."""
+    if isinstance(erreur, httpx.TimeoutException):
+        return (
+            "Le calcul a expiré (API trop lente ou injoignable). "
+            "Réessayez ; si le problème persiste, vérifiez que l'API tourne."
+        )
+    if isinstance(erreur, httpx.ConnectError):
+        return (
+            "Impossible de joindre le moteur de calcul (API injoignable). "
+            "Démarrez l'API ou utilisez le mode local (OPENFISCA_MODE=local)."
+        )
+    return f"Erreur de calcul : {erreur}"
+
+
 def _ligne(libelle: str, montant, *, fort: bool = False) -> ui.Tag:
     valeur = "—" if montant is None else f"{montant:,.3f} DT".replace(",", " ")
     style = "font-weight:700;" if fort else ""
@@ -168,7 +183,7 @@ def server(input, output, session):
                     adhesion_complementaire=adhesion, **fam,
                 ))
             except httpx.HTTPError as erreur:
-                return ("erreur", str(erreur))
+                return ("erreur", _message_erreur(erreur))
         salaire_base = float(input.salaire_de_base() or 0)
         primes_val = float(input.primes() or 0)
         if salaire_base < 0 or primes_val < 0:
@@ -194,7 +209,7 @@ def server(input, output, session):
         try:
             return ("ok", calculer_bulletin(situation, annee=annee))
         except httpx.HTTPError as erreur:
-            return ("erreur", str(erreur))
+            return ("erreur", _message_erreur(erreur))
 
     @render.ui
     def bulletin():
@@ -322,7 +337,7 @@ def server(input, output, session):
             )
         except httpx.HTTPError as erreur:
             return ui.div(
-                ui.markdown(f"**Erreur de calcul :** {erreur}"),
+                ui.markdown(f"**{_message_erreur(erreur)}**"),
                 class_="alert alert-danger",
             )
 
