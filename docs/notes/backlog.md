@@ -65,6 +65,62 @@ conversation.
   isolément** dans openfisca-tunisia (seulement indirectement via les fiches
   complètes). Nos `tests/paie/rsna_*.yaml` comblent ce trou — à étendre.
 
+## Résultats des pistes explorées (2026-11-12)
+
+### net → brut (faisable via réforme openfisca)
+
+- Réforme `openfisca_tunisia.reforms.de_net_a_salaire_de_base.de_net_a_salaire_de_base` :
+  prend `salaire_net_a_payer` en entrée, renvoie `salaire_de_base` (vrai brut)
+  par inversion numérique (`scipy.optimize.fsolve`). Traverse toute la chaîne
+  (CNSS + IRPP + CSS, CSS incluse depuis 2018).
+- Activation API : `openfisca serve -c openfisca_tunisia -r openfisca_tunisia.reforms.de_net_a_salaire_de_base.de_net_a_salaire_de_base -p 5000`.
+  Payload : `salaire_net_a_payer` renseigné, `salaire_de_base` à `null`.
+- **À valider avant intégration** : `scipy` doit être installé ; `fsolve` fait des
+  `print()` de debug et clone la simulation à chaque itération (latence) ; tests
+  existants seulement en 2016 — tester sur 2025. Repli possible : inversion
+  dichotomique côté client sur l'API brut→net standard.
+
+### Régimes CNSS salariés (valeurs `regime_securite_sociale_cotisant`)
+
+| Régime | Valeur JSON | Salarié 2025 | Patronal 2025 |
+|---|---|---|---|
+| Privé non agricole | `rsna` | 9,68 %* | 17,07 %* |
+| Salarié agricole | `rsa` | 4,5725 % | 7,7175 % |
+| Agricole amélioré | `rsaa` | 6,99 % | 12,48 % |
+| Public (CNRPS) | `salarie_cnrps` | 12,95 % (+0,30 % UGTT) | 18,50 % |
+
+*RSNA : 9,68 %/17,07 % à 1000 TND. La **retraite complémentaire** (3 %/6 %) n'est
+due que sur la fraction d'assiette > 6×SMIG **et** si
+`adhesion_cnss_regime_complementaire = True` — l'app doit décider de l'exposer,
+sinon elle sous-estime les hauts salaires. CNRPS : l'agrégat inclut 3 TND de
+cotisation syndicale UGTT (0,30 %).
+
+**Non modelés (lacune)** : **CIVP/stage** et **entreprise totalement
+exportatrice** n'ont ni régime ni paramètre dédié dans openfisca-tunisia.
+Fallback côté app : `neant` (0 cotisation) en signalant que l'exonération n'est
+pas paramétrée. Régime `re` (stagiaires) : dossiers cotisations incomplets.
+
+### Cas de référence openfisca réutilisables
+
+- `tests/fiches_de_paie/ouvriere_2016_02.yaml` : **RSNA**, net complet —
+  réutilisable (année 2016, paramètres historiques requis).
+- `tests/fiches_de_paie/{salarie_fictif,enseignant}.yaml` : **CNRPS public**,
+  chaîne brut→net complète (2018 / 2016).
+- `tests/cres/spec_calcul_net.yaml` : taux `cotisations_salarie` par régime en
+  2023 (rsna 9,18 %, rsa, rsaa, rtns, rtte, rtfr, raci) — bon pour la ligne
+  cotisations, pas le net.
+- **Lacune** : aucun cas RSNA **récent (2023+) couvrant le net complet** — à
+  créer. `cres/excel.yaml` quasi vide (net/irpp commientés). `cotisations_employeur`
+  absent de tous ces fichiers.
+
+### Droit 2026 (CSS non supprimée)
+
+- La CSS **n'est pas supprimée** en 2026 : l'art. 87 LF2026 (loi n° 2025-17)
+  prolonge le régime exceptionnel à 0,5 %. OpenFisca reconduit le droit 2025 en
+  2026 (barème IRPP, CNSS 9,68 %, CSS 0,5 %) — écart nul, conforme.
+- Vigilance : ajouter dans openfisca une référence datée 2026-01-01 (même taux,
+  réf. art. 87 LF2026) pour tracer la prolongation.
+
 ## Désaccords à surveiller
 
 - Simulateurs restés à CNSS 9,18 % en 2025 : corrects seulement pour revenus

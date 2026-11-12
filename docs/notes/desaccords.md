@@ -91,7 +91,12 @@ résiduel : l'assiette (9,18 % vs 9,68 %), pas le barème ni l'abattement.
   charge par rang ; étudiant sans bourse et enfant infirme majorés. Modélisées
   dans OpenFisca (`deduction_famille`).
 - **CSS** : 0,5 % (2023-2025) de la base au-delà du seuil de première tranche
-  imposée ; supprimée à partir de 2026 (à confirmer / tracer).
+  imposée. **Prolongée à 0,5 % en 2026** (art. 87 LF2026, loi n° 2025-17 du
+  12 déc. 2025) — la suppression annoncée a été écartée en commission des
+  finances. OpenFisca reconduit le droit 2025 en 2026 (barème IRPP, CNSS 9,68 %,
+  CSS 0,5 %), résultats conformes. Point de vigilance : ajouter dans OpenFisca
+  une référence datée 2026-01-01 (même taux 0,5 %, réf. art. 87 LF2026) pour
+  tracer explicitement la prolongation, même si le chiffre ne change pas.
 
 Ces éléments sont cohérents entre les simulateurs et la loi : pas de décision
 à trancher, seulement à tester.
