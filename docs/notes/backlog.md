@@ -40,10 +40,30 @@ conversation.
   (voir `sources_locales/`, local).
 - **CSS 2026** : tracer sa suppression annoncée (LF2026) et vérifier le barème
   IRPP 2026 dans OpenFisca.
-- [à compléter] Résultat de l'exécution de la suite de tests complète
-  OpenFisca-Tunisia (agent lancé le 2026-11-12) : nombre de tests
-  passants/échecs, échecs pré-existants éventuels, liste des tests YAML paie
-  existants réutilisables.
+### Suite de tests OpenFisca-Tunisia (exécutée le 2026-11-12)
+
+- `openfisca test --country-package openfisca_tunisia tests` :
+  **8137 passés / 0 échec / 0 skip / 0 warning** (~4 min). Config pytest
+  stricte (`filterwarnings = error`). Moteur sain, rien de cassé.
+- Système des pensions testé à part (`make test-pension`, package
+  `openfisca_tunisia_pension`) — non lancé, pertinent pour le futur simulateur
+  retraite.
+
+### Ressources existantes réutilisables (trouvées dans openfisca-tunisia)
+
+- **Fiches de paie complètes** : `tests/fiches_de_paie/{salarie_fictif,
+  enseignant,ouvriere_2016_02}.yaml` → cas de référence à rejouer / comparer.
+- **net → brut** déjà outillé via réformes :
+  `tests/reforms/de_net_a_salaire_de_base/*` et `de_net_a_imposable/basic.yaml`
+  → base pour la fonctionnalité net→brut de l'app.
+- **CRES / net** : `tests/cres/{excel,spec_calcul_net}.yaml`.
+
+### Lacune confirmée (ce que nos tests apportent)
+
+- `salaire_net_a_payer`, `irpp_salarie_preleve_a_la_source`,
+  `cotisations_salarie`/`cotisations_employeur` ne sont **pas testés
+  isolément** dans openfisca-tunisia (seulement indirectement via les fiches
+  complètes). Nos `tests/paie/rsna_*.yaml` comblent ce trou — à étendre.
 
 ## Désaccords à surveiller
 
