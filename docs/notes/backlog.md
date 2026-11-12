@@ -3,6 +3,24 @@
 Reports et pistes à suivre, versés ici pour ne pas vivre uniquement dans une
 conversation.
 
+## État du chantier (ce dépôt = FICHE DE PAIE)
+
+**Fait** : repo public, modèle openfisca validé (10 tests YAML paie, suite
+complète openfisca 8137 OK), désaccords tranchés (CNSS 9,68 % LF2025, perte
+d'emploi déductible, millésime RAS, CSS 2026 prolongée), app Shiny via API
+openfisca avec sélecteur de régime (rsna/rsa/rsaa/cnrps/exonéré), agents
+portables (AGENTS.md + .pi/.claude/.opencode). App en local : :8100 (app) / :5000
+(API).
+
+**À faire** (todos actives) : net→brut dans l'app, cas de test RSNA 2025 complet
++ multi-régimes, options avancées (retraite complémentaire, HS, déductions IRPP),
+hébergement API + piste MCP.
+
+**Chantier pension** : délégué à une session dédiée. Tout le contexte capturé
+(modèle `openfisca_tunisia_pension`, simulateurs, cas chiffrés, désaccords) est
+dans `docs/notes/relais-pension.md` — à recopier dans le futur dépôt
+`tunisie-simulateur-pension`.
+
 ## Architecture / déploiement
 
 - **API OpenFisca en local uniquement** pour l'instant. L'app Shiny appelle
