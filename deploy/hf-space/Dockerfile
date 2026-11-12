@@ -7,7 +7,10 @@ WORKDIR /app
 
 # Dépendances : shiny + openfisca-tunisia (le moteur tourne dans le process).
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir "shiny>=1.0" "openfisca-tunisia>=0.159"
+RUN pip install --no-cache-dir "shiny>=1.0" "openfisca-tunisia>=0.159" "matplotlib>=3.8"
+
+# matplotlib sans display : backend non interactif.
+ENV MPLBACKEND=Agg
 
 # Code de l'app.
 COPY app/ ./app/

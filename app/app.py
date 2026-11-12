@@ -86,6 +86,7 @@ app_ui = ui.page_sidebar(
             "Bulletin mensuel",
             ui.h4("Fiche de paie — salarié (Tunisie)"),
             ui.output_ui("bulletin"),
+            ui.output_plot("courbe_net", height="320px"),
             ui.markdown(
                 "Calculé par le moteur **OpenFisca-Tunisia** (via son API). "
                 "Convention : cotisations au taux du mois de paie, barème IRPP "
@@ -245,6 +246,16 @@ def server(input, output, session):
             class_="table table-sm",
         )
 
+        net = b["salaire_net_a_payer"] or 0.0
+        taux_preleve = (1 - net / brut) * 100 if brut > 0 else 0.0
+        taux_txt = ui.tags.p(
+            ui.tags.small(
+                f"Taux de prélèvement global : {taux_preleve:.1f} % "
+                f"(net = {net / brut * 100:.1f} % du brut)"
+                if brut > 0 else ""
+            )
+        )
+
         employeur = ui.tags.table(
             ui.tags.tbody(
                 _ligne("CNSS patronale", b["cotisations_employeur"]),
@@ -256,11 +267,37 @@ def server(input, output, session):
         return ui.TagList(
             avertissement,
             ui.layout_columns(
-                ui.card(ui.card_header("Côté salarié"), salarie, detail_cnss),
+                ui.card(ui.card_header("Côté salarié"), salarie, taux_txt, detail_cnss),
                 ui.card(ui.card_header("Côté employeur"), employeur),
                 col_widths=(7, 5),
             ),
         )
+
+    @render.plot(alt="Courbe du net en fonction du brut")
+    @reactive.event(input.calculer, ignore_none=False)
+    def courbe_net():
+        import matplotlib.pyplot as plt
+
+        annee = int(input.annee())
+        regime = str(input.regime())
+        bruts = list(range(500, 6001, 250))
+        nets = []
+        for montant in bruts:
+            situation = construire_situation(
+                salaire_de_base=montant, annee=annee, regime=regime
+            )
+            b = calculer_bulletin(situation, annee=annee)
+            nets.append(b["salaire_net_a_payer"] or 0.0)
+
+        fig, ax = plt.subplots()
+        ax.plot(bruts, nets, color="#2a7", label="Net à payer")
+        ax.plot(bruts, bruts, color="#ccc", linestyle="--", label="Brut (référence)")
+        ax.set_xlabel("Salaire brut (DT/mois)")
+        ax.set_ylabel("Net à payer (DT/mois)")
+        ax.set_title(f"Net selon le brut — {regime.upper()} {annee}")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        return fig
 
     @render.ui
     @reactive.event(input.calculer, ignore_none=False)
