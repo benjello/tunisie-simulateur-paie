@@ -25,14 +25,26 @@ Reproduire pour la **pension** le cheminement de la paie :
 - **Modèle à copier** : le dépôt `~/projets/tunisie-simulateur-paie/`
   (structure, `.gitignore`, `AGENTS.md` + agents `.pi/.claude/.opencode`,
   `app/openfisca_client.py`, `app/app.py`, `pyproject.toml` uv, format tests).
-- **Agents portables réutilisables** : `analyste-openfisca` (Haiku, lecture
-  seule), `juriste-fiscal-tn` (Sonnet, web). **Déjà déployés en user** via
-  `scripts/deploy_agents.sh --global` (dans ~/.pi/agent/agents,
-  ~/.claude/agents, ~/.config/opencode/agent) — donc **disponibles depuis le
-  chantier pension sans rien copier**. Pour une source projet propre, reprendre
-  `scripts/deploy_agents.sh` (source unique `.pi/agents/*.md` → génère
-  `.claude/agents` et `.opencode/agent`, option `--global`) depuis le dépôt
-  paie.
+- **Gestion des agents — kit d'amorçage fourni.** Un kit prêt à copier est dans
+  `~/projets/_passation/agents-kit/` :
+  - `scripts/deploy_agents.sh` : source unique `.pi/agents/*.md` → génère
+    `.claude/agents` et `.opencode/agent` ; options `--global` (déploie en user
+    pi/claude/opencode) et `--check` (CI).
+  - `.pi/agents/analyste-pension.md` : analyste spécialisé **module pension**
+    (TunisiaPensionTaxBenefitSystem, numba, variables préfixées rsna_*/cnrps_*).
+  - `.pi/agents/analyste-openfisca.md` : analyste modèle général (réutilisable).
+  - `.pi/agents/juriste-fiscal-tn.md` : juriste droit tunisien (réutilisable).
+
+  **Procédure dans le nouveau dépôt pension** :
+  ```bash
+  cp -r ~/projets/_passation/agents-kit/scripts ~/projets/_passation/agents-kit/.pi .
+  chmod +x scripts/deploy_agents.sh
+  scripts/deploy_agents.sh --global   # génère .claude/.opencode + déploie en user
+  ```
+
+  Les agents `analyste-openfisca` et `juriste-fiscal-tn` sont **déjà déployés en
+  user** (reconnus depuis n'importe quel cwd) ; relancer `--global` après avoir
+  ajouté `analyste-pension` pour qu'il le soit aussi.
 
 ## MODÈLE openfisca pension (agent `pension-model`, vérifié par calcul)
 
