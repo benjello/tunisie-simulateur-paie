@@ -62,6 +62,7 @@ app_ui = ui.page_sidebar(
         ui.panel_conditional(
             "input.sens === 'net_brut'",
             ui.input_numeric("net_cible", "Net à payer souhaité (DT/mois)", 1200, min=0, step=50),
+            ui.input_numeric("primes_net", "Primes connues (DT/mois)", 0, min=0, step=50),
         ),
         ui.hr(),
         ui.h6("Situation familiale (IRPP)"),
@@ -155,6 +156,7 @@ def server(input, output, session):
             try:
                 return ("ok", brut_depuis_net(
                     float(input.net_cible() or 0), annee=annee, regime=regime,
+                    primes=float(input.primes_net() or 0),
                     adhesion_complementaire=adhesion, **fam,
                 ))
             except httpx.HTTPError as erreur:

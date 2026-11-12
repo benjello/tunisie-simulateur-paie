@@ -52,3 +52,32 @@ def test_aller_retour_brut_net_brut(annee, brut, regime):
     assert abs(brut_trouve - brut) < 0.05, (
         f"{annee} {regime} brut={brut} net={net:.3f} -> brut_inv={brut_trouve:.3f}"
     )
+
+
+# Inversion avec primes CONNUES fixes : l'inconnue est le salaire de base.
+CAS_PRIMES = [
+    (2025, 1200, 300, "rsna"),
+    (2025, 2000, 0, "rsna"),
+    (2025, 800, 700, "rsna"),
+    (2025, 1500, 1500, "rsna"),
+]
+
+
+@pytest.mark.parametrize("annee,base,prime,regime", CAS_PRIMES)
+def test_inversion_avec_primes(annee, base, prime, regime):
+    bulletin = calculer_bulletin(
+        construire_situation(
+            salaire_de_base=base, annee=annee, regime=regime, primes=prime
+        ),
+        annee=annee,
+    )
+    net = bulletin["salaire_net_a_payer"]
+
+    inverse = brut_depuis_net(net, annee=annee, regime=regime, primes=prime)
+    # salaire_brut inclut les primes ; on isole le salaire de base retrouvé.
+    base_trouve = inverse["salaire_brut"] - prime
+
+    assert abs(base_trouve - base) < 0.05, (
+        f"{annee} {regime} base={base} prime={prime} net={net:.3f} "
+        f"-> base_inv={base_trouve:.3f}"
+    )

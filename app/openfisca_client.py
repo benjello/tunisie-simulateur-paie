@@ -104,6 +104,7 @@ def brut_depuis_net(
     *,
     annee: int,
     regime: str = "rsna",
+    primes: float = 0.0,
     adhesion_complementaire: bool = False,
     chef_de_famille: bool = False,
     nb_enf: int = 0,
@@ -112,33 +113,29 @@ def brut_depuis_net(
     tolerance: float = 0.01,
     max_iter: int = 60,
 ) -> dict:
-    """Inverse net -> brut par dichotomie sur l'API brut -> net.
+    """Inverse net -> salaire de base par dichotomie sur l'API brut -> net.
 
-    Le net est strictement croissant avec le brut, donc la dichotomie converge
-    toujours. On ne dépend ni de scipy ni d'une réforme côté serveur : on appelle
-    l'API brut -> net standard. Renvoie le bulletin complet (comme calculer_bulletin)
-    avec le brut trouvé.
+    Les `primes` sont une donnée CONNUE, maintenue fixe : l'inconnue cherchée est
+    le salaire de base tel que net(salaire_de_base + primes) = net_cible. Le net
+    croît avec le salaire de base, donc la dichotomie converge toujours. Renvoie
+    le bulletin complet (le `salaire_brut` renvoyé inclut les primes).
     """
-    if net_cible <= 0:
+    def net_pour(salaire_base: float) -> dict:
         situation = construire_situation(
-            salaire_de_base=0.0, annee=annee, regime=regime,
+            salaire_de_base=salaire_base, annee=annee, regime=regime, primes=primes,
             adhesion_complementaire=adhesion_complementaire,
             chef_de_famille=chef_de_famille, nb_enf=nb_enf,
             nb_enf_sup=nb_enf_sup, nb_infirme=nb_infirme,
         )
         return calculer_bulletin(situation, annee=annee)
 
-    def net_pour(brut: float) -> dict:
-        situation = construire_situation(
-            salaire_de_base=brut, annee=annee, regime=regime,
-            adhesion_complementaire=adhesion_complementaire,
-            chef_de_famille=chef_de_famille, nb_enf=nb_enf,
-            nb_enf_sup=nb_enf_sup, nb_infirme=nb_infirme,
-        )
-        return calculer_bulletin(situation, annee=annee)
+    # Si les primes seules produisent déjà un net >= cible, le salaire de base est 0.
+    bulletin_bas = net_pour(0.0)
+    if net_cible <= 0 or (bulletin_bas["salaire_net_a_payer"] or 0.0) >= net_cible:
+        return bulletin_bas
 
-    # Borne haute : le brut est forcément > net. On double jusqu'à dépasser la cible.
-    bas, haut = net_cible, net_cible * 2.0
+    # Borne haute : on part du net cible et on augmente jusqu'à dépasser.
+    bas, haut = 0.0, max(net_cible, 1.0) * 2.0
     bulletin_haut = net_pour(haut)
     gardes = 0
     while (bulletin_haut["salaire_net_a_payer"] or 0.0) < net_cible and gardes < 40:
