@@ -1,0 +1,43 @@
+# Déploiement sur shinyapps.io
+
+Hébergement gratuit de l'app Shiny (compte shinyapps.io, sans carte bancaire ;
+plan gratuit = 25 h actives/mois, 1 Go RAM). L'app calcule OpenFisca **en
+direct** dans le process (`OPENFISCA_MODE=local`) : pas d'API HTTP séparée.
+
+## Prérequis (une seule fois)
+
+1. **Compte** sur https://www.shinyapps.io (Google/GitHub, sans carte).
+2. **rsconnect-python** : déjà installé dans le venv du projet (`uv sync --group dev`).
+3. **Autoriser le compte** — contient ton SECRET, à lancer dans TON terminal
+   (depuis Account → Tokens sur shinyapps.io, bouton « Copy to clipboard ») :
+
+   ```bash
+   .venv/bin/rsconnect add --account <compte> --name <compte> \
+     --token <TOKEN> --secret <SECRET>
+   ```
+
+   > Le token/secret donnent accès à ton compte : ne les commite jamais. Tu peux
+   > les révoquer/régénérer à tout moment depuis la page Tokens.
+
+## Déployer
+
+```bash
+deploy/shinyapps/push.sh <compte> [nom-app]
+# ex :
+deploy/shinyapps/push.sh benjello simulateur-paie-tunisie
+```
+
+Le script assemble un bundle propre (point d'entrée `app.py` qui force le mode
+local + `app_main.py` + `openfisca_client.py` + `i18n.py` + `requirements.txt`)
+et lance `rsconnect deploy shiny`. L'URL publique s'affiche à la fin.
+
+## Fichiers
+
+- `app.py` — point d'entrée déploiement (force `OPENFISCA_MODE=local`).
+- `requirements.txt` — dépendances (shiny, openfisca-tunisia, matplotlib, httpx).
+- `push.sh` — assemble le bundle et déploie.
+
+## Limite du plan gratuit
+
+25 h actives/mois. Au-delà, l'app est suspendue jusqu'au mois suivant. Pour un
+usage soutenu : plan payant shinyapps.io, ou un VPS (voir `../README.md`).

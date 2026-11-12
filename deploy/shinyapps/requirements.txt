@@ -1,0 +1,6 @@
+# Dépendances pour le déploiement shinyapps.io (app Shiny Python).
+# L'app calcule OpenFisca en direct (OPENFISCA_MODE=local) : pas d'API web.
+shiny>=1.0
+openfisca-tunisia>=0.159
+matplotlib>=3.8
+httpx>=0.27

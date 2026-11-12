@@ -23,6 +23,7 @@ Repository = "https://github.com/benjello/tunisie-simulateur-paie"
 dev = [
     "shinylive>=0.5",
     "pytest>=8",
+    "rsconnect-python>=1.33.2",
 ]
 
 [tool.uv]
