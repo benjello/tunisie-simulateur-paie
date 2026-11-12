@@ -34,8 +34,10 @@ Hiérarchisées par ratio valeur/effort. Cochées au fur et à mesure.
 - [x] **A11 — CI GitHub Actions** (openfisca test + pytest + check agents).
 - [x] **A12 — Cache** dans la dichotomie net→brut.
 - [x] **A13 — Gestion d'erreur** fine (timeout/connexion).
-- [x] **A14 — Déploiement HF Spaces** (mode moteur-en-direct + Dockerfile/README
-  Space ; reste le push vers un Space HF avec le compte utilisateur).
+- [x] **A14 — Déploiement** : HF Spaces écarté (Docker devenu payant, seul
+  « Static » gratuit). **Déployé sur shinyapps.io** (compte benjello, plan
+  gratuit, mode moteur-en-direct). Voir `deploy/shinyapps/`. **App en ligne.**
+  Limite : 25 h actives/mois sur le plan gratuit.
 
 ## État du chantier (ce dépôt = FICHE DE PAIE)
 
