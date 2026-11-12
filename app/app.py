@@ -358,7 +358,43 @@ def server(input, output, session):
             ),
             class_="table table-sm",
         )
-        return ui.card(ui.card_header("IRPP annuel"), table)
+
+        # Effet des déductions : IRPP sans déduction vs avec.
+        effet = ui.TagList()
+        if deductions:
+            try:
+                ref = calculer_irpp_annuel(
+                    salaire_annuel=salaire_mensuel * 12,
+                    annee=annee,
+                    regime=str(input.regime()),
+                    chef_de_famille=bool(input.chef_de_famille()),
+                    nb_enf=int(input.nb_enf() or 0),
+                    nb_enf_sup=int(input.nb_enf_sup() or 0),
+                    nb_infirme=int(input.nb_infirme() or 0),
+                    deductions={},
+                )
+                irpp_sans = ref["irpp"] or 0.0
+                economie = irpp_sans - irpp
+                lignes_ded = [
+                    _ligne(f" {DEDUCTIONS_ANNUELLES[v]}", -montant)
+                    for v, montant in deductions.items()
+                ]
+                effet = ui.card(
+                    ui.card_header("Effet des déductions"),
+                    ui.tags.table(
+                        ui.tags.tbody(
+                            _ligne("IRPP sans déduction", irpp_sans),
+                            *lignes_ded,
+                            _ligne("IRPP avec déductions", irpp),
+                            _ligne("Économie d'impôt", economie, fort=True),
+                        ),
+                        class_="table table-sm",
+                    ),
+                )
+            except httpx.HTTPError:
+                effet = ui.TagList()
+
+        return ui.TagList(ui.card(ui.card_header("IRPP annuel"), table), effet)
 
 
 app = App(app_ui, server)
