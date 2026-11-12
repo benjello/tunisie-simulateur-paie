@@ -22,6 +22,12 @@ APPNAME="${2:-simulateur-paie-tunisie}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BUNDLE="$(mktemp -d)"
 
+# Charge le .env du projet s'il existe (pour SHINYAPPS_APP_ID notamment).
+if [[ -f "$ROOT/.env" ]]; then
+  set -a; # shellcheck disable=SC1091
+  source "$ROOT/.env"; set +a
+fi
+
 echo "Assemblage du bundle dans $BUNDLE"
 
 # Le point d'entrée shinyapps (force le mode local) devient app.py.
@@ -39,10 +45,16 @@ echo "3.12" > "$BUNDLE/.python-version"
 echo "Contenu du bundle :"
 ls -1 "$BUNDLE"
 
-# rsconnect depuis le venv du projet.
+# rsconnect depuis le venv du projet. --app-id si défini (met à jour l'app
+# existante au lieu d'en créer une ; évite la limite de 5 apps du plan gratuit).
+APPID_ARGS=()
+if [[ -n "${SHINYAPPS_APP_ID:-}" ]]; then
+  APPID_ARGS=(--app-id "$SHINYAPPS_APP_ID")
+fi
 "$ROOT/.venv/bin/rsconnect" deploy shiny "$BUNDLE" \
   --name "$COMPTE" \
   --title "$APPNAME" \
+  "${APPID_ARGS[@]}" \
   --entrypoint app:app
 
 echo "Déploiement lancé. Suivez l'URL affichée ci-dessus."
