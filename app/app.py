@@ -14,6 +14,7 @@ import httpx
 from shiny import App, reactive, render, ui
 
 from openfisca_client import (
+    BRANCHES_CNSS_SALARIE,
     DEDUCTIONS_ANNUELLES,
     api_disponible,
     brut_depuis_net,
@@ -207,6 +208,17 @@ def server(input, output, session):
             )
         css = b["contribution_sociale_solidarite_prelevee_a_la_source"] or 0.0
 
+        # Détail des branches CNSS non nulles (repli dans un <details>).
+        lignes_branches = [
+            _ligne(f" {libelle}", -(b[var] or 0.0))
+            for var, libelle in BRANCHES_CNSS_SALARIE.items()
+            if (b.get(var) or 0.0) > 0
+        ]
+        detail_cnss = ui.tags.details(
+            ui.tags.summary("Détail des branches CNSS"),
+            ui.tags.table(ui.tags.tbody(*lignes_branches), class_="table table-sm"),
+        )
+
         salarie = ui.tags.table(
             ui.tags.tbody(
                 _ligne("Salaire brut", brut, fort=True),
@@ -230,7 +242,7 @@ def server(input, output, session):
         return ui.TagList(
             avertissement,
             ui.layout_columns(
-                ui.card(ui.card_header("Côté salarié"), salarie),
+                ui.card(ui.card_header("Côté salarié"), salarie, detail_cnss),
                 ui.card(ui.card_header("Côté employeur"), employeur),
                 col_widths=(7, 5),
             ),

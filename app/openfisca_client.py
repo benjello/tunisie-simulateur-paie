@@ -81,6 +81,20 @@ def _calculate(situation: dict, *, timeout: float = 30.0) -> dict:
     reponse.raise_for_status()
     return reponse.json()
 
+# Branches de la cotisation salariale (libellés pour l'affichage détaillé).
+BRANCHES_CNSS_SALARIE = {
+    "retraite_salarie": "Retraite",
+    "retraite_complementaire_salarie": "Retraite complémentaire",
+    "maladie_salarie": "Assurance maladie",
+    "maternite_salarie": "Maternité",
+    "deces_salarie": "Décès",
+    "famille_salarie": "Prestations familiales",
+    "accident_du_travail_salarie": "Accident du travail",
+    "perte_d_emploi_salarie": "Perte d'emploi",
+    "protection_sociale_travailleurs_salarie": "Protection sociale",
+    "soin_salarie": "Soins",
+}
+
 # Variables du bulletin de paie demandées au moteur (côté salarié + employeur).
 VARIABLES_PAIE = [
     "cotisations_salarie",
@@ -90,7 +104,7 @@ VARIABLES_PAIE = [
     "salaire_net_a_payer",
     "cotisations_employeur",
     "salaire_super_brut",
-]
+] + list(BRANCHES_CNSS_SALARIE)
 
 
 # Heures mensuelles selon le régime hebdomadaire (semaines/an = 52/12).
