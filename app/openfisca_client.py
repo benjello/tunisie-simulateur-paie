@@ -93,6 +93,36 @@ VARIABLES_PAIE = [
 ]
 
 
+# Heures mensuelles selon le régime hebdomadaire (semaines/an = 52/12).
+# Non paramétré dans openfisca ; sourcé (code du travail, art. 90).
+HEURES_MENSUELLES = {"40h": 40 * 52 / 12, "48h": 48 * 52 / 12}  # 173,33 / 208
+
+
+def valoriser_heures_supp(
+    salaire_base_mensuel: float, heures_supp: float, regime_horaire: str
+) -> float:
+    """Valorise les heures supplémentaires selon le droit du travail tunisien.
+
+    Majoration sur le salaire de base horaire (art. 90 du code du travail) :
+    - régime 48h : 75 % au-delà de 48h/semaine ;
+    - régime 40h : 25 % jusqu'à la 48e heure (8 premières), 50 % au-delà.
+    Le montant renvoyé (heure pleine + majoration) est à ajouter aux primes.
+
+    NB : le seuil des 8h est hebdomadaire ; si `heures_supp` est un total
+    mensuel, le découpage 8h/+8h est une approximation (une seule semaine).
+    """
+    if heures_supp <= 0 or salaire_base_mensuel <= 0:
+        return 0.0
+    taux_horaire = salaire_base_mensuel / HEURES_MENSUELLES[regime_horaire]
+    if regime_horaire == "48h":
+        montant = heures_supp * taux_horaire * 1.75
+    else:  # 40h
+        h1 = min(heures_supp, 8)
+        h2 = max(heures_supp - 8, 0)
+        montant = h1 * taux_horaire * 1.25 + h2 * taux_horaire * 1.50
+    return round(montant, 3)
+
+
 def construire_situation(
     *,
     salaire_de_base: float,

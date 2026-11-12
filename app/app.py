@@ -20,6 +20,7 @@ from openfisca_client import (
     calculer_bulletin,
     calculer_irpp_annuel,
     construire_situation,
+    valoriser_heures_supp,
 )
 
 ANNEES = [str(a) for a in range(2020, 2027)]
@@ -51,12 +52,11 @@ app_ui = ui.page_sidebar(
             ui.input_numeric("salaire_de_base", "Salaire de base (DT/mois)", 1500, min=0, step=50),
             ui.input_numeric("primes", "Primes et indemnités (DT/mois)", 0, min=0, step=50),
             ui.input_numeric("heures_sup", "Heures supplémentaires (nb/mois)", 0, min=0, step=1),
-            ui.input_numeric("taux_horaire", "Taux horaire normal (DT/h)", 0, min=0, step=0.5),
             ui.input_select(
-                "majoration_hs",
-                "Majoration heures supp.",
-                {"1.25": "25 %", "1.50": "50 %", "1.75": "75 %"},
-                selected="1.25",
+                "regime_horaire",
+                "Régime hebdomadaire",
+                {"48h": "48 h/semaine (+75 %)", "40h": "40 h/semaine (+25/50 %)"},
+                selected="48h",
             ),
         ),
         ui.panel_conditional(
@@ -162,12 +162,12 @@ def server(input, output, session):
             except httpx.HTTPError as erreur:
                 return ("erreur", str(erreur))
         # Heures supplémentaires : non modélisées par OpenFisca côté bulletin.
-        # On les valorise ici (taux horaire × majoration) et on les ajoute aux
-        # primes, qui entrent dans l'assiette de cotisations et l'imposable.
-        valeur_hs = (
-            float(input.heures_sup() or 0)
-            * float(input.taux_horaire() or 0)
-            * float(input.majoration_hs())
+        # On les valorise selon le régime horaire légal (art. 90 code du travail)
+        # à partir du salaire de base, et on les ajoute aux primes.
+        valeur_hs = valoriser_heures_supp(
+            float(input.salaire_de_base() or 0),
+            float(input.heures_sup() or 0),
+            str(input.regime_horaire()),
         )
         situation = construire_situation(
             salaire_de_base=float(input.salaire_de_base() or 0),
