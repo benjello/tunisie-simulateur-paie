@@ -13,6 +13,9 @@
 #
 set -euo pipefail
 
+# <compte> doit correspondre au nom du credential enregistré via `rsconnect add
+# --name <compte>` (ici : benjello). On utilise --name (pas --account) pour que
+# rsconnect réutilise le token/secret déjà stockés, sans les redemander.
 COMPTE="${1:?Usage: push.sh <compte> [nom-app]}"
 APPNAME="${2:-simulateur-paie-tunisie}"
 
@@ -30,13 +33,15 @@ cp "$ROOT/app/openfisca_client.py" "$BUNDLE/openfisca_client.py"
 cp "$ROOT/app/i18n.py" "$BUNDLE/i18n.py"
 # Dépendances.
 cp "$ROOT/deploy/shinyapps/requirements.txt" "$BUNDLE/requirements.txt"
+# Contrainte de version Python (évite le warning et fige la cible).
+echo "3.12" > "$BUNDLE/.python-version"
 
 echo "Contenu du bundle :"
 ls -1 "$BUNDLE"
 
 # rsconnect depuis le venv du projet.
 "$ROOT/.venv/bin/rsconnect" deploy shiny "$BUNDLE" \
-  --account "$COMPTE" \
+  --name "$COMPTE" \
   --title "$APPNAME" \
   --entrypoint app:app
 
