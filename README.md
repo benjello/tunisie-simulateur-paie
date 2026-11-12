@@ -7,6 +7,28 @@ avec une interface [Shiny for Python](https://shiny.posit.co/py/).
 Premier simulateur livré : **fiche de paie** (salariés du privé, régime CNSS
 non agricole « RSNA » ; les autres régimes seront ajoutés ensuite).
 
+## Architecture
+
+L'application **ne calcule rien elle-même** : elle envoie la situation du
+salarié à l'**API web d'OpenFisca-Tunisia** et affiche le bulletin renvoyé.
+OpenFisca reste le moteur unique ; l'app est une couche de présentation.
+
+```
+Shiny (app/)  ──HTTP──▶  API OpenFisca-Tunisia  ──▶  moteur de calcul
+```
+
+En local, deux processus (voir [`app/README.md`](app/README.md)) :
+
+```bash
+uv run openfisca serve -c openfisca_tunisia -p 5000   # l'API
+uv run shiny run app/app.py --port 8100               # l'app
+```
+
+> Déploiement statique GitHub Pages non retenu : OpenFisca importe des
+> extensions compilées (pendulum, numexpr, psutil) absentes de Pyodide. Voir
+> [`docs/notes/backlog.md`](docs/notes/backlog.md) (hébergement de l'API, piste
+> MCP).
+
 ## Périmètre de la v1 (fiche de paie RSNA)
 
 Union des éléments repérés dans les simulateurs de paie tunisiens existants :
