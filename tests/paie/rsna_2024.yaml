@@ -1,0 +1,68 @@
+# Fiche de paie — régime CNSS non agricole (RSNA) — revenus 2024.
+#
+# Règles (voir docs/notes/desaccords.md) :
+#   - CNSS salariale 9,18 % (avant la cotisation perte d'emploi de la LF2025) — D1
+#   - barème IRPP des revenus 2024 (barème antérieur à la LF2025) — D3
+#   - abattement frais professionnels 10 %, plafonné 2000 DT/an
+#
+# Valeurs attendues = moteur OpenFisca-Tunisia (droit 2024). Cas calés sur
+# l'année où les simulateurs à 9,18 % sont internement cohérents (voir
+# sources_locales/). NB : l'IRPP 2024 diffère de 2025 car le barème diffère.
+
+- name: RSNA 2024 — brut 1000, célibataire
+  period: 2024-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 1000
+  output:
+    cotisations_salarie: 91.80
+    salaire_imposable: 908.20
+    irpp_salarie_preleve_a_la_source: 104.1855
+    contribution_sociale_solidarite_prelevee_a_la_source: 4.0869
+    salaire_net_a_payer: 799.9276
+
+- name: RSNA 2024 — brut 1500, célibataire
+  period: 2024-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 1500
+  output:
+    cotisations_salarie: 137.70
+    salaire_imposable: 1362.30
+    irpp_salarie_preleve_a_la_source: 210.4449
+    contribution_sociale_solidarite_prelevee_a_la_source: 6.1303
+    salaire_net_a_payer: 1145.7249
+
+- name: RSNA 2024 — brut 3000, célibataire
+  period: 2024-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 3000
+  output:
+    cotisations_salarie: 275.40
+    salaire_imposable: 2724.60
+    irpp_salarie_preleve_a_la_source: 576.8720
+    contribution_sociale_solidarite_prelevee_a_la_source: 12.7897
+    salaire_net_a_payer: 2134.9385
+
+# Profil avec charges de famille : chef de famille + 2 enfants à charge.
+# nb_enf et chef_de_famille sont des variables annuelles : on date l'année
+# complète et le salaire mensuel sur janvier.
+- name: RSNA 2024 — brut 1500/mois, chef de famille, 2 enfants
+  period: 2024
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant:
+      2024-01: rsna
+    salaire_de_base:
+      2024-01: 1500
+    chef_de_famille: true
+    nb_enf: 2
+  output:
+    irpp_salarie_preleve_a_la_source:
+      2024-01: 199.6116
+    salaire_net_a_payer:
+      2024-01: 1156.7665

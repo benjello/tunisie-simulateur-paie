@@ -1,0 +1,16 @@
+# Correspondance cas de test <-> simulateurs en ligne : NE JAMAIS pousser.
+sources_locales/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Divers
+.DS_Store
+*.tmp
+/tmp/

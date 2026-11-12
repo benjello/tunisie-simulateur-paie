@@ -1,0 +1,85 @@
+# Fiche de paie — régime CNSS non agricole (RSNA) — revenus 2025.
+#
+# Règles (voir docs/notes/desaccords.md) :
+#   - CNSS salariale 9,68 % (9,18 % + 0,5 % perte d'emploi, LF2025 art. 17) — D1
+#   - cotisation perte d'emploi déductible du revenu imposable — D2
+#   - barème IRPP des revenus 2025 (8 tranches, LF2025) pour la retenue à la source — D3
+#   - abattement frais professionnels 10 %, plafonné 2000 DT/an
+#
+# Valeurs attendues = moteur OpenFisca-Tunisia (droit 2025). Cas comparés hors
+# dépôt à des simulateurs ayant intégré la LF2025 (voir sources_locales/).
+
+- name: RSNA 2025 — brut 1000, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 1000
+  output:
+    cotisations_salarie: 96.80
+    salaire_imposable: 903.20
+    irpp_salarie_preleve_a_la_source: 59.4320
+    contribution_sociale_solidarite_prelevee_a_la_source: 4.0644
+    salaire_net_a_payer: 839.7036
+
+- name: RSNA 2025 — brut 1500, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 1500
+  output:
+    cotisations_salarie: 145.20
+    salaire_imposable: 1354.80
+    irpp_salarie_preleve_a_la_source: 158.9967
+    contribution_sociale_solidarite_prelevee_a_la_source: 6.0966
+    salaire_net_a_payer: 1189.7068
+
+- name: RSNA 2025 — brut 2000, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 2000
+  output:
+    cotisations_salarie: 193.60
+    salaire_imposable: 1806.40
+    irpp_salarie_preleve_a_la_source: 264.1000
+    contribution_sociale_solidarite_prelevee_a_la_source: 8.1987
+    salaire_net_a_payer: 1534.1013
+
+- name: RSNA 2025 — brut 3000, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 3000
+  output:
+    cotisations_salarie: 290.40
+    salaire_imposable: 2709.60
+    irpp_salarie_preleve_a_la_source: 535.0013
+    contribution_sociale_solidarite_prelevee_a_la_source: 12.7147
+    salaire_net_a_payer: 2161.8840
+
+- name: RSNA 2025 — brut 5000, célibataire
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 5000
+  output:
+    cotisations_salarie: 484.00
+    salaire_imposable: 4516.00
+    irpp_salarie_preleve_a_la_source: 1165.2467
+    contribution_sociale_solidarite_prelevee_a_la_source: 21.7467
+    salaire_net_a_payer: 3329.0068
+
+# Vérification du taux patronal 2025 : 17,07 % (16,57 % + 0,5 % perte d'emploi)
+- name: RSNA 2025 — cotisations employeur, brut 1000
+  period: 2025-01
+  absolute_error_margin: 0.01
+  input:
+    regime_securite_sociale_cotisant: rsna
+    salaire_de_base: 1000
+  output:
+    cotisations_employeur: 170.70
