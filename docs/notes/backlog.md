@@ -8,35 +8,30 @@ conversation.
 Hiérarchisées par ratio valeur/effort. Cochées au fur et à mesure.
 
 ### Fiabilité / confiance
-- [ ] **A1 — Validation croisée réelle** avec les simulateurs en ligne, cas par
-  cas, mapping `sources_locales/`, écarts dans `desaccords.md`. *(La promesse
-  initiale ; seul le cas Hesabi est formalisé.)*
-- [ ] **A2 — Validation des entrées** (salaire ≥ 0, net cible atteignable,
-  garde-fous dichotomie net→brut) + messages clairs.
-- [ ] **A3 — Détail CNSS par branche** (retraite, maladie, famille, perte
-  d'emploi…) au lieu d'un bloc unique.
+- [x] **A1 — Validation croisée réelle** : barème IRPP et CSS alignés au centime
+  avec les simulateurs ; seul écart = CNSS déjà tranché. Mapping étendu dans
+  `sources_locales/`.
+- [x] **A2 — Validation des entrées** (garde-fous + messages).
+- [x] **A3 — Détail CNSS par branche** (repli dans le bulletin).
 
 ### Expérience utilisateur
-- [ ] **A4 — Export du bulletin** (PDF / PNG), comme les concurrents.
-- [ ] **A5 — Taux effectif + graphique** net = f(brut) par régime.
-- [ ] **A6 — Comparateur** multi-années / multi-régimes côte à côte (ex. impact
-  LF2025).
-- [ ] **A7 — Bilingue FR/AR** (openfisca-tunisia est bilingue).
+- [x] **A4 — Export du bulletin** PDF (via matplotlib).
+- [x] **A5 — Taux effectif + graphique** net = f(brut).
+- [x] **A6 — Comparateur** multi-années / multi-régimes (onglet dédié).
+- [ ] **A7 — Bilingue FR/AR** (openfisca-tunisia est bilingue). *Reste à faire —
+  chantier i18n conséquent (traductions + RTL arabe).*
 
 ### Couverture fonctionnelle
-- [ ] **A8 — Onglet annuel enrichi** (effet de chaque déduction, minimum
-  d'impôt…).
-- [ ] **A9 — CIVP/stage et export** : signaler l'approximation « néant » ou
-  modéliser.
-- [ ] **A10 — Heures suppl. fines** (régimes 40h/48h, seuils légaux).
+- [x] **A8 — Onglet annuel enrichi** (effet des déductions sur l'IRPP).
+- [x] **A9 — CIVP/stage et export** : approximation « néant » signalée en UI.
+- [x] **A10 — Heures suppl. fines** (régimes 40h/48h, art. 90).
 
 ### Robustesse technique
-- [ ] **A11 — CI GitHub Actions** : `openfisca test` + pytest à chaque push.
-- [ ] **A12 — Cache API** : mémoïser les appels dans la dichotomie net→brut
-  (jusqu'à ~60 appels/inversion).
-- [ ] **A13 — Gestion d'erreur** plus fine (timeout, moteur indisponible).
-- [~] **A14 — Déploiement HF Spaces** (mode moteur-en-direct ajouté, Docker
-  à finaliser). *En cours (todo #16).*
+- [x] **A11 — CI GitHub Actions** (openfisca test + pytest + check agents).
+- [x] **A12 — Cache** dans la dichotomie net→brut.
+- [x] **A13 — Gestion d'erreur** fine (timeout/connexion).
+- [x] **A14 — Déploiement HF Spaces** (mode moteur-en-direct + Dockerfile/README
+  Space ; reste le push vers un Space HF avec le compte utilisateur).
 
 ## État du chantier (ce dépôt = FICHE DE PAIE)
 
