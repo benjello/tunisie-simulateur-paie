@@ -1,0 +1,16 @@
+# Image minimale pour servir l'API web OpenFisca-Tunisia.
+# Build :  docker build -f deploy/Dockerfile.api -t of-tn-api .
+# Run   :  docker run -p 5000:5000 of-tn-api
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# openfisca-core[web-api] tire Flask/gunicorn ; openfisca-tunisia tire le modèle.
+RUN pip install --no-cache-dir "openfisca-tunisia>=0.159" "openfisca-core[web-api]>=43"
+
+EXPOSE 5000
+
+# gunicorn est utilisé par openfisca serve en interne.
+CMD ["openfisca", "serve", \
+     "--country-package", "openfisca_tunisia", \
+     "--bind", "0.0.0.0:5000"]
