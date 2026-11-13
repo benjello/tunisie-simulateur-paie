@@ -21,6 +21,7 @@ from openfisca_client import (
     calculer_bulletin,
     calculer_irpp_annuel,
     construire_situation,
+    info_moteur,
     valoriser_heures_supp,
 )
 from i18n import LANGUES, t
@@ -145,6 +146,7 @@ app_ui = ui.page_sidebar(
         ),
         id="onglets",
     ),
+    ui.output_ui("tracabilite_ui"),
     title="Simulateur de paie Tunisie",
 )
 
@@ -250,6 +252,14 @@ def server(input, output, session):
     @render.ui
     def titre_deductions_ui():
         return ui.h6(t("deductions_annuelles", str(input.lang())))
+
+    @render.ui
+    def tracabilite_ui():
+        info = info_moteur()
+        txt = t("tracabilite", str(input.lang())).format(
+            tn=info["openfisca_tunisia"], core=info["openfisca_core"]
+        )
+        return ui.tags.p(ui.tags.small(txt, style="color:#888;"))
 
     @render.ui
     def statut_api():

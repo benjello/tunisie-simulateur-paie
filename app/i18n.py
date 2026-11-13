@@ -125,6 +125,10 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
         "fr": "Impossible de joindre le moteur de calcul (API injoignable).",
         "ar": "تعذّر الاتصال بمحرك الحساب (الواجهة غير متاحة).",
     },
+    "tracabilite": {
+        "fr": "Calculé avec OpenFisca-Tunisia v{tn} (moteur v{core}). Barèmes de l'année sélectionnée. Estimation indicative.",
+        "ar": "محسوب بـ OpenFisca-Tunisia v{tn} (محرك v{core}). جداول السنة المختارة. تقدير إرشادي.",
+    },
 }
 
 

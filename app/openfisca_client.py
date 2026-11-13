@@ -332,6 +332,23 @@ def calculer_irpp_annuel(
     return {"irpp": irpp, "irpp_net_a_payer": irpp_net, "ras_annuelle": ras}
 
 
+def info_moteur() -> dict:
+    """Version du modèle et du moteur, pour la traçabilité (reproductibilité)."""
+    import importlib.metadata as m
+
+    def _v(nom):
+        try:
+            return m.version(nom)
+        except Exception:
+            return "?"
+
+    return {
+        "openfisca_tunisia": _v("openfisca-tunisia"),
+        "openfisca_core": _v("openfisca-core"),
+        "mode": MODE,
+    }
+
+
 def api_disponible(timeout: float = 3.0) -> bool:
     """Indique si le moteur est prêt (pour un message clair dans l'UI).
 
