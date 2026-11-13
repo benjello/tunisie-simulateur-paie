@@ -110,6 +110,8 @@ app_ui = ui.page_sidebar(
         ui.input_action_button("calculer", "Calculer le bulletin", class_="btn-primary"),
         ui.input_action_button("partager", "🔗 Lien", class_="btn-outline-secondary btn-sm"),
         width=320,
+        # Mobile : sidebar repliée par défaut (plus de place pour les résultats).
+        open={"desktop": "open", "mobile": "closed"},
     ),
     ui.output_ui("statut_api"),
     ui.navset_tab(
