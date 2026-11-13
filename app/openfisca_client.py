@@ -332,6 +332,34 @@ def calculer_irpp_annuel(
     return {"irpp": irpp, "irpp_net_a_payer": irpp_net, "ras_annuelle": ras}
 
 
+def baremes_annee(annee: int) -> dict:
+    """Paramètres législatifs clés pour une année (barème IRPP, SMIG).
+
+    Lit l'arbre de paramètres openfisca en direct (indépendant du mode api/local).
+    Renvoie un dict prêt à afficher.
+    """
+    tbs = _get_tbs()
+    p = tbs.parameters
+    date = f"{annee}-01-01"
+    bareme = p.impot_revenu.bareme(date)
+    tranches = [
+        {"seuil": float(s), "taux": float(r)}
+        for s, r in zip(bareme.thresholds, bareme.rates)
+    ]
+    smig = None
+    try:
+        smig = float(p.marche_travail.smig_48h_mensuel(date))
+    except Exception:
+        pass
+    abat = None
+    try:
+        abat = float(p.impot_revenu.tspr.max_abat_sal(date))
+    except Exception:
+        pass
+    return {"annee": annee, "bareme_irpp": tranches, "smig_48h_mensuel": smig,
+            "plafond_abattement": abat}
+
+
 def info_moteur() -> dict:
     """Version du modèle et du moteur, pour la traçabilité (reproductibilité)."""
     import importlib.metadata as m

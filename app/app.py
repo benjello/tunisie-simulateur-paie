@@ -18,6 +18,7 @@ from openfisca_client import (
     DEDUCTIONS_ANNUELLES,
     api_disponible,
     brut_depuis_net,
+    baremes_annee,
     calculer_bulletin,
     calculer_irpp_annuel,
     construire_situation,
@@ -144,6 +145,12 @@ app_ui = ui.page_sidebar(
                 ui.output_ui("annuel"),
             ),
             value="tab_annuel",
+        ),
+        ui.nav_panel(
+            "Barème",
+            ui.output_ui("titre_bareme_ui"),
+            ui.output_ui("bareme"),
+            value="tab_bareme",
         ),
         id="onglets",
     ),
@@ -324,6 +331,47 @@ def server(input, output, session):
     @render.ui
     def titre_deductions_ui():
         return ui.h6(t("deductions_annuelles", str(input.lang())))
+
+    @render.ui
+    def titre_bareme_ui():
+        return ui.h4(t("titre_bareme", str(input.lang())))
+
+    @render.ui
+    @reactive.event(input.calculer, input.annee, ignore_none=False)
+    def bareme():
+        lang = str(input.lang())
+        annee = int(input.annee())
+        b = baremes_annee(annee)
+        lignes = [
+            ui.tags.tr(
+                ui.tags.td(f"{tr['seuil']:,.0f}".replace(",", " ")),
+                ui.tags.td(f"{tr['taux'] * 100:.0f} %", style="text-align:right"),
+            )
+            for tr in b["bareme_irpp"]
+        ]
+        table_irpp = ui.tags.table(
+            ui.tags.thead(ui.tags.tr(
+                ui.tags.th(t("col_tranche", lang)),
+                ui.tags.th(t("col_taux", lang), style="text-align:right"),
+            )),
+            ui.tags.tbody(*lignes),
+            class_="table table-sm",
+        )
+        autres = ui.tags.table(
+            ui.tags.tbody(
+                _ligne(t("smig_mensuel", lang), b["smig_48h_mensuel"]),
+                _ligne(t("plafond_abattement", lang), b["plafond_abattement"]),
+            ),
+            class_="table table-sm",
+        )
+        return ui.TagList(
+            ui.layout_columns(
+                ui.card(ui.card_header(t("bareme_irpp", lang)), table_irpp),
+                ui.card(ui.card_header(str(annee)), autres),
+                col_widths=(7, 5),
+            ),
+            ui.tags.p(ui.tags.small(t("source_params", lang), style="color:#888;")),
+        )
 
     @render.ui
     def tracabilite_ui():
