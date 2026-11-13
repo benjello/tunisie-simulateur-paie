@@ -107,6 +107,7 @@ app_ui = ui.page_sidebar(
             False,
         ),
         ui.input_action_button("calculer", "Calculer le bulletin", class_="btn-primary"),
+        ui.input_action_button("partager", "🔗 Lien", class_="btn-outline-secondary btn-sm"),
         width=320,
     ),
     ui.output_ui("statut_api"),
@@ -175,7 +176,78 @@ def _ligne(libelle: str, montant, *, fort: bool = False) -> ui.Tag:
     )
 
 
+# Champs synchronisés avec l'URL : nom input -> (widget, type python).
+# widget ∈ {select, radio, numeric, check}.
+CHAMPS_URL = {
+    "lang": ("select", str), "annee": ("select", str),
+    "regime": ("select", str), "regime_horaire": ("select", str),
+    "sens": ("radio", str),
+    "salaire_de_base": ("numeric", float), "primes": ("numeric", float),
+    "net_cible": ("numeric", float), "heures_sup": ("numeric", float),
+    "nb_enf": ("numeric", int), "nb_enf_sup": ("numeric", int),
+    "nb_infirme": ("numeric", int),
+    "chef_de_famille": ("check", bool), "adhesion_complementaire": ("check", bool),
+}
+
+
 def server(input, output, session):
+    # --- URL partageable : pré-remplir les champs depuis les query params. ---
+    _url_applique = reactive.value(False)
+
+    @reactive.effect
+    def _lire_url():
+        if _url_applique():
+            return
+        from urllib.parse import parse_qs
+        search = session.clientdata.url_search()
+        if not search:
+            _url_applique.set(True)
+            return
+        params = parse_qs(search.lstrip("?"))
+        for champ, (widget, typ) in CHAMPS_URL.items():
+            if champ not in params:
+                continue
+            brut = params[champ][0]
+            try:
+                if widget == "check":
+                    ui.update_checkbox(champ, value=brut in ("1", "true", "True"))
+                elif widget == "select":
+                    ui.update_select(champ, selected=brut)
+                elif widget == "radio":
+                    ui.update_radio_buttons(champ, selected=brut)
+                else:
+                    ui.update_numeric(champ, value=typ(brut))
+            except Exception:
+                pass
+        _url_applique.set(True)
+
+    @reactive.effect
+    @reactive.event(input.partager)
+    def _copier_lien():
+        from urllib.parse import urlencode
+        etat = {}
+        for champ, (widget, _typ) in CHAMPS_URL.items():
+            try:
+                v = input[champ]()
+            except Exception:
+                continue
+            if v is None:
+                continue
+            etat[champ] = int(v) if widget == "check" else v
+        qs = urlencode(etat)
+        lang = str(input.lang())
+        msg = t("lien_copie", lang)
+        # Construit l'URL avec les params, l'écrit dans la barre, et la copie.
+        js = (
+            f"(function(){{"
+            f"var u=location.origin+location.pathname+'?'+{qs!r};"
+            f"history.replaceState(null,'',u);"
+            f"navigator.clipboard&&navigator.clipboard.writeText(u);"
+            f"}})();"
+        )
+        ui.insert_ui(ui.tags.script(js), selector="body", where="beforeEnd", immediate=True)
+        ui.notification_show(msg, duration=3)
+
     @reactive.effect
     def _appliquer_langue():
         lang = str(input.lang())

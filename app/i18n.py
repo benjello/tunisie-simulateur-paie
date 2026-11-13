@@ -60,6 +60,8 @@ TRADUCTIONS: dict[str, dict[str, str]] = {
     "detail_cnss": {"fr": "Détail des branches CNSS", "ar": "تفصيل فروع CNSS"},
     "taux_preleve": {"fr": "Taux de prélèvement global", "ar": "نسبة الاقتطاع الجملية"},
     "export_pdf": {"fr": "Télécharger le bulletin (PDF)", "ar": "تحميل الكشف (PDF)"},
+    "partager": {"fr": "🔗 Copier le lien de ce scénario", "ar": "🔗 نسخ رابط هذا السيناريو"},
+    "lien_copie": {"fr": "Lien copié ✓", "ar": "تم نسخ الرابط ✓"},
     # Branches CNSS
     "br_retraite": {"fr": "Retraite", "ar": "التقاعد"},
     "br_retraite_compl": {"fr": "Retraite complémentaire", "ar": "تقاعد تكميلي"},
